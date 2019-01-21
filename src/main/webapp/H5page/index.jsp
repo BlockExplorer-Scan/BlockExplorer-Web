@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+ <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <%--<link rel="stylesheet" href="font-awesome.min.css">--%>
     <link rel="stylesheet" href="http://${header["Host"]}${pageContext.request.contextPath}/H5page/font-awesome.min.css">
-    <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+         <%@ page contentType="text/html;charset=UTF-8" language="java" %>
     <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
     <!-- 引入样式 -->
@@ -92,13 +92,13 @@
             font-weight: bold;
             font-size: 13px;
             line-height: 1.6;
-            color: #333333;
+            color: #666666;
         }
 
         .left-value {
-            font-size: 14px;
+            font-size: 12px;
             line-height: 1.6;
-            color: #333333;
+            color: #666666;
             word-wrap: break-word;
         }
 
@@ -109,7 +109,7 @@
         }
 
         .blue-color {
-            color: #3498db
+            color: #0193C9 ;
         }
 
         .address {
@@ -175,11 +175,13 @@
                             <!-- <p class="textL" style="font-weight:500">{{list.blockHash}}</p> -->
 
                             <div style="display:flex;align-items:center;justify-content: center">
-                                <van-circle v-model="list.sid" :rate="list.id" :speed="100" layer-color="#ebedf0" size="30px"
-                                    :text="list.sid"></van-circle>
+                                <div style="margin-right:20px">
+                                    <van-circle v-model="list.sid" :rate="list.id" :speed="100" layer-color="#ebedf0" size="30px"
+                                        :text="list.sid"></van-circle>
+                                </div>
                                 <ul>
                                     <li class="trans-item" v-for="(item,index) in list.transactions" :key="index">
-                                        <span class="text-hidden" style="display:inline-block;max-width:50px;vertical-align: top;">{{item.statusName}}</span>
+                                        <span class="text-hidden" style="display:inline-block;max-width:50px;vertical-align: top;color: #666666">{{item.statusName}}</span>
                                         <span v-if="item.from == addresses">
                                             <i class="fa fa-long-arrow-right"></i>
                                         </span>
@@ -188,7 +190,7 @@
                                         </span>
                                         <span v-if="item.from != addresses" class="text-hidden blue-color" style="display:inline-block;max-width:140px;vertical-align: top;margin-right:20px">{{item.from}}</span>
                                         <span v-else class="text-hidden blue-color" style="display:inline-block;max-width:140px;vertical-align: top;margin-right:20px">{{item.to}}</span>
-                                        <span :class="{colorGreen : isNegative}" style="max-width:80px;word-wrap:break-word ;">{{item.data
+                                        <span :class="{colorGreen : isNegative}" style="max-width:80px;word-wrap:break-word ;color: #666666">{{item.data
                                             |science}}</span>
                                     </li>
                                 </ul>
@@ -222,11 +224,11 @@
                 listArr: [],
                 allArr: [],
                 // addresses: "0xca098c0725cecf2fb45ebf78822178090e7ff6a5",
-                addresses: "0xca098c0725cecf2fb45ebf78822178090e7ff6a5",
+                addresses: "",
                 isLoading: false,
                 latestBlock: '',
                 hasData: true,
-                addressArr: ["0xca098c0725cecf2fb45ebf78822178090e7ff6a5", "0x8591b1c41ac0804d35fabd9b532001494aff0081"]
+                addressArr: []
                 // pageStart: 0,
                 // pageNum: 5
             },
@@ -365,7 +367,7 @@
                 onLoad() {
                     let _this = this;
                     let ajaxJson = {
-                        // url: 'http://18.179.50.113/Search-Web/App/queryTransactionRecord',
+                        //url: 'http://18.179.50.113/Search-Web/App/queryTransactionRecord',
                         // url: 'http://192.168.0.112:8080/App/queryTransactionRecord',
                         url: 'http://${header["Host"]}${pageContext.request.contextPath}/App/queryTransactionRecord',
                         method: 'post',
