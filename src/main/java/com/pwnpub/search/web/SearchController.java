@@ -607,7 +607,7 @@ public class SearchController {
         return ResponseResult.build(200, "query specific transaction success...", map);
     }
 
-    //全局搜索   匹配长度
+    //全局搜索   匹配长度  测试
     @GetMapping("/search")
     public ResponseResult search(@RequestParam(name = "data", required = true) String data) {
         try {
