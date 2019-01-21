@@ -650,6 +650,7 @@ public class SearchController {
         return ResponseResult.build(200, "null", null);
     }
 
+    //获取服务器系统时间
     @GetMapping("/date")
     public ResponseResult date() {
         return ResponseResult.build(200, "success",new Date().getTime()/1000);
