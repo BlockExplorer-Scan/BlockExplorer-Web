@@ -3,6 +3,7 @@ package com.pwnpub.search.web;
 import com.pwnpub.search.config.CoinName;
 import com.pwnpub.search.pojo.BlockEntityAll;
 import com.pwnpub.search.pojo.TransactionEntityAll;
+import com.pwnpub.search.utils.CommonUtils;
 import com.pwnpub.search.utils.ResponseResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -37,6 +38,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -608,31 +610,49 @@ public class SearchController {
     //全局搜索   匹配长度
     @GetMapping("/search")
     public ResponseResult search(@RequestParam(name = "data", required = true) String data) {
+        try {
+            if (!StringUtils.isEmpty(data)) {
 
-        if (!StringUtils.isEmpty(data)) {
+                Map<String, Object> map = new HashMap<>();
 
-            Map<String, Object> map = new HashMap<>();
+                int lenth = data.length();
+                if (lenth <= 12) { //区块高度
 
-            int lenth = data.length();
-            if (lenth <= 12) { //区块高度
+                    map.put("type", "blockNumber");
+                    Web3j web3j = Web3j.build(new HttpService("http://n8.ledx.xyz"));
 
-                map.put("type","blockNumber");
+                    BigInteger bigInteger = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false)
+                            .send().getBlock().getNumber();
 
-            } else if (lenth > 12 && lenth < 60) { //钱包地址 && 合约地址
+                    if (!CommonUtils.isNumeric0(data) || Integer.parseInt(data) > bigInteger.intValue()) {
+                        map.put("status", "1");
+                    }else {
+                        map.put("status", "0");
+                    }
 
-                map.put("type","address");
+                } else if (lenth > 12 && lenth < 60) { //钱包地址 && 合约地址
 
-            } else if (lenth >= 60) {//交易哈希
+                    map.put("type", "address");
 
-                map.put("type","transaction");
+                } else if (lenth >= 60) {//交易哈希
 
+                    map.put("type", "transaction");
+
+                }
+
+                map.put("data", data);
+                return ResponseResult.build(200, "success", map);
             }
-
-            map.put("data",data);
-            return ResponseResult.build(200, "success", map);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         return ResponseResult.build(200, "null", null);
+    }
+
+    @GetMapping("/date")
+    public ResponseResult date() {
+        return ResponseResult.build(200, "success",new Date().getTime()/1000);
     }
 
 }
