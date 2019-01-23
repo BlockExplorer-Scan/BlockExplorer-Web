@@ -197,7 +197,6 @@ public class AppController {
 
         return null;
 
-
     }
 
     @PostMapping("/query/latestBlock")
@@ -279,6 +278,7 @@ public class AppController {
 
                     SearchResponse searchResponse1 = searchRequestBuilder1.get();
                     List<Map<String, Object>> listInner = new ArrayList<>();
+
                     for (SearchHit hit1 : searchResponse1.getHits()) {
 
                         Map<String, Object> mapInner = new HashMap<>();
@@ -368,50 +368,139 @@ public class AppController {
         return null;
     }
 
-    @PostMapping("/queryMainCoin")
+
+
+
+    //新版h5返回
+    @PostMapping("/query")
     @ResponseBody
-    public ResponseResult queryMainCoin(HttpServletRequest request, @RequestParam String addresseStr) {
+    public ResponseResult query(HttpServletRequest request,
+                                @RequestParam String addresseStr,
+                                @RequestParam(name = "pageStart", required = false, defaultValue = "0")Integer pageStart,
+                                @RequestParam(name = "pageNum", required = false, defaultValue = "20")Integer pageNum) {
+
 
 
         if (addresseStr != null && addresseStr != "") {
 
             String[] addresses = addresseStr.split(",");
             List<Map<String, Object>> list = new ArrayList<>();
+
+
             for (String address : addresses) {
 
-                BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
-
-                boolQueryBuilder.should(QueryBuilders.matchQuery("from", address));
-                boolQueryBuilder.should(QueryBuilders.matchQuery("to", address));
-
-
-                SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("maincoin")
+                //查询最近20个区块
+                SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("block")
                         .setTypes("data")
-                        .addSort("blockNumber", SortOrder.DESC)
+                        .addSort("number", SortOrder.DESC)
                         .setSearchType(SearchType.QUERY_THEN_FETCH)
-                        .setQuery(boolQueryBuilder);
+                        .setFrom(pageStart)
+                        .setSize(pageNum);
 
                 SearchResponse searchResponse = searchRequestBuilder.get();
+                for (SearchHit searchHit : searchResponse.getHits()) {
 
-                for (SearchHit hit : searchResponse.getHits()) {
-                    list.add(hit.getSourceAsMap());
+                    Map<String, Object> mapOuter = new HashMap<>();
+
+                    Object number = searchHit.getSourceAsMap().get("number");
+                    Object timestamp = searchHit.getSourceAsMap().get("timestamp");
+                    Object blockHash = searchHit.getSourceAsMap().get("hash");
+                    List<Map<String, Object>> listInner = new ArrayList<>();
+                    //根据区块号码查询ERC20交易
+                    BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+                    BoolQueryBuilder query = QueryBuilders.boolQuery();
+                    boolQueryBuilder.must(QueryBuilders.matchQuery("blockNumber", number));
+                    boolQueryBuilder.must(QueryBuilders.matchQuery("status", coinName.getErc20()));
+
+                    query.should(QueryBuilders.matchQuery("from", address));
+                    query.should(QueryBuilders.matchQuery("to", address));
+
+                    boolQueryBuilder.must(query);
+
+                    SearchRequestBuilder searchRequestBuilder2 = this.client.prepareSearch("erc20")
+                            .setTypes("data")
+                            .addSort("blockNumber", SortOrder.DESC)
+                            .setSearchType(SearchType.QUERY_THEN_FETCH)
+                            .setQuery(boolQueryBuilder);
+                    SearchResponse searchResponse2 = searchRequestBuilder2.get();
+
+                    Map<String, Object> mapInner1 = new HashMap<>();
+
+                    //拿到from to data
+                    for (SearchHit searchHit2:searchResponse2.getHits()) {
+                        Object from = searchHit2.getSourceAsMap().get("from");
+                        Object to = searchHit2.getSourceAsMap().get("to");
+                        Object data = searchHit2.getSourceAsMap().get("data");
+                        Object status = searchHit2.getSourceAsMap().get("status");
+                        Object statusName = searchHit2.getSourceAsMap().get("statusName");
+                        //封装
+                        mapInner1.put("from", from);
+                        mapInner1.put("to", to);
+                        mapInner1.put("data", data);
+                        mapInner1.put("status", status);
+                        mapInner1.put("statusName", coinName.getErc20Name());
+
+                        listInner.add(mapInner1);
+
+                    }
+
+                    //根据区块号码，查询主币内部交易
+                    BoolQueryBuilder boolQueryBuilder2 = QueryBuilders.boolQuery();
+                    BoolQueryBuilder query2 = QueryBuilders.boolQuery();
+
+                    boolQueryBuilder2.must(QueryBuilders.matchQuery("blockNumber", number));
+                    boolQueryBuilder2.must(QueryBuilders.matchQuery("status", coinName.getMaincoin()));
+
+                    query2.should(QueryBuilders.matchQuery("from", address));
+                    query2.should(QueryBuilders.matchQuery("to", address));
+
+                    boolQueryBuilder2.must(query2);
+
+                    SearchRequestBuilder searchRequestBuilder3 = this.client.prepareSearch("maincoin")
+                            .setTypes("data")
+                            .addSort("blockNumber", SortOrder.DESC)
+                            .setSearchType(SearchType.QUERY_THEN_FETCH)
+                            .setQuery(boolQueryBuilder2);
+                    SearchResponse searchResponse3 = searchRequestBuilder3.get();
+
+                    Map<String, Object> mapInner2 = new HashMap<>();
+                    //拿到from to data
+                    for (SearchHit searchHit3:searchResponse3.getHits()) {
+                        Object from = searchHit3.getSourceAsMap().get("from");
+                        Object to = searchHit3.getSourceAsMap().get("to");
+                        Object data = searchHit3.getSourceAsMap().get("value");
+                        Object status = searchHit3.getSourceAsMap().get("status");
+                        Object statusName = searchHit3.getSourceAsMap().get("statusName");
+                        //封装
+                        mapInner2.put("from", from);
+                        mapInner2.put("to", to);
+                        mapInner2.put("data", data);
+                        mapInner2.put("status", status);
+                        mapInner2.put("statusName", coinName.getMaincoinName());
+
+                        listInner.add(mapInner2);
+
+                    }
+
+                    //listInner//去重
+
+                    mapOuter.put("blockHash", blockHash);
+                    mapOuter.put("blockNumber", number);
+                    mapOuter.put("transactions", listInner);
+                    mapOuter.put("timestamp", timestamp);
+
+                    list.add(mapOuter);
+
                 }
 
-                Set set = new HashSet();
-                List<Map<String, Object>> listNew = new ArrayList<>();
-                set.addAll(list);
-                listNew.addAll(set);
-
-                return ResponseResult.build(200, "获取数据成功", listNew);
 
             }
-        } else {
-            return ResponseResult.build(401, "请求数据为null，请输入数据");
+
+
+
+            return ResponseResult.build(200, "h5:查询交易成功", list);
         }
-
         return null;
-
-
     }
 
 }
