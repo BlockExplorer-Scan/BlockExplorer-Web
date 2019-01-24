@@ -224,9 +224,9 @@ public class AppController {
         return ResponseResult.build(200, "The Latest block number is：", list);
     }
 
-    @PostMapping("/queryTransactionRecord")
+    @PostMapping("/query")
     @ResponseBody
-    public ResponseResult queryTransactionRecord(HttpServletRequest request, @RequestParam String addresseStr) {
+    public ResponseResult query(HttpServletRequest request, @RequestParam String addresseStr) {
 
 
         if (addresseStr != null && addresseStr != "") {
@@ -372,9 +372,9 @@ public class AppController {
 
 
     //新版h5返回
-    @PostMapping("/query")
+    @PostMapping("/queryTransactionRecord")
     @ResponseBody
-    public ResponseResult query(HttpServletRequest request,
+    public ResponseResult queryTransactionRecord(HttpServletRequest request,
                                 @RequestParam String addresseStr,
                                 @RequestParam(name = "pageStart", required = false, defaultValue = "0")Integer pageStart,
                                 @RequestParam(name = "pageNum", required = false, defaultValue = "20")Integer pageNum) {
@@ -433,12 +433,14 @@ public class AppController {
                         Object data = searchHit2.getSourceAsMap().get("data");
                         Object status = searchHit2.getSourceAsMap().get("status");
                         Object statusName = searchHit2.getSourceAsMap().get("statusName");
+                        Object transactionHash = searchHit2.getSourceAsMap().get("transactionHash");
                         //封装
                         mapInner1.put("from", from);
                         mapInner1.put("to", to);
                         mapInner1.put("data", data);
                         mapInner1.put("status", status);
                         mapInner1.put("statusName", coinName.getErc20Name());
+                        mapInner1.put("transactionHash", transactionHash);
 
                         listInner.add(mapInner1);
 

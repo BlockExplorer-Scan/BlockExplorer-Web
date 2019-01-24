@@ -232,7 +232,18 @@ public class SearchController {
         SearchResponse searchResponse = searchRequestBuilder.get();
 
         for (SearchHit hit : searchResponse.getHits()) {
-            list.add(hit.getSourceAsMap());
+
+            //优化返回值
+            Object valueStr = hit.getSourceAsMap().get("valueStr");
+            if (valueStr == null && valueStr.equals("")) {
+                list.add(hit.getSourceAsMap());
+
+            } else {
+                hit.getSourceAsMap().put("value", valueStr);   //返回值是否覆盖了value   是
+                list.add(hit.getSourceAsMap());
+            }
+
+
         }
 
         return ResponseResult.build(200, "query specific transaction success...", list);
