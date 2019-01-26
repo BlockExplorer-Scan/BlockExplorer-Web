@@ -235,11 +235,11 @@ public class SearchController {
 
             //优化返回值
             Object valueStr = hit.getSourceAsMap().get("valueStr");
-            if (valueStr == null && valueStr.equals("")) {
+            if (valueStr != null && !"".equals(valueStr)) {
+                hit.getSourceAsMap().put("value", valueStr);   //返回值是否覆盖了value   是
                 list.add(hit.getSourceAsMap());
 
             } else {
-                hit.getSourceAsMap().put("value", valueStr);   //返回值是否覆盖了value   是
                 list.add(hit.getSourceAsMap());
             }
 
