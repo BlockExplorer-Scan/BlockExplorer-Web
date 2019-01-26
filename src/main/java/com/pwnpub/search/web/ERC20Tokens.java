@@ -65,7 +65,12 @@ public class ERC20Tokens {
 
             for (SearchHit hit : searchResponse.getHits()) {
 
+                Object transactionHash = hit.getSourceAsMap().get("transactionHash");
+                //web3  获取quantity
+
+
                 hit.getSourceAsMap().put("statusName", coinName.getErc20Name());
+
                 list.add(hit.getSourceAsMap());
             }
 
