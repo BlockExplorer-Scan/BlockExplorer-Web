@@ -1,5 +1,21 @@
 package com.pwnpub.search.utils;
 
+import org.web3j.abi.FunctionEncoder;
+import org.web3j.abi.FunctionReturnDecoder;
+import org.web3j.abi.TypeReference;
+import org.web3j.abi.datatypes.Function;
+import org.web3j.abi.datatypes.Type;
+import org.web3j.abi.datatypes.generated.Uint256;
+import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.request.Transaction;
+import org.web3j.protocol.core.methods.response.EthCall;
+
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+
 /**
  * @program BlockExplorer-Web-h5
  * @author: joon.h
@@ -16,5 +32,30 @@ public class CommonUtils {
                 return false;
         }
         return true;
+    }
+
+
+    public static BigInteger getTokenTotalSupply(Web3j web3j, String contractAddress) {
+
+        BigInteger totalSupply = BigInteger.ZERO;
+        try {
+            Function function = new Function("totalSupply",
+                    Arrays.<Type>asList(),
+                    Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {
+                    }));
+
+            String data = FunctionEncoder.encode(function);
+            org.web3j.protocol.core.methods.request.Transaction transaction =
+                    Transaction.createEthCallTransaction(contractAddress, contractAddress, data);
+
+            EthCall ethCall = web3j.ethCall(transaction, DefaultBlockParameterName.LATEST).sendAsync().get();
+            List<Type> results = FunctionReturnDecoder.decode(ethCall.getValue(), function.getOutputParameters());
+            totalSupply = (BigInteger) results.get(0).getValue();
+
+            return totalSupply;
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+        return totalSupply;
     }
 }
