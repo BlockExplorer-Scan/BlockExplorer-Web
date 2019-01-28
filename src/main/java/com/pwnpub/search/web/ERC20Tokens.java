@@ -107,15 +107,12 @@ public class ERC20Tokens {
             Web3j web3 = null;
             try {
                 web3 = Web3j.build(new HttpService("http://n8.ledx.xyz"));
+                BigInteger tokenTotalSupply = CommonUtils.getTokenTotalSupply(web3, contractAddress);
+                map.put("TokenTotalSupply", tokenTotalSupply);
             } catch (Exception e) {
                 e.printStackTrace();
                 return ResponseResult.build(201, "call web3j failed...");
             }
-
-            BigInteger tokenTotalSupply = CommonUtils.getTokenTotalSupply(web3, contractAddress);
-
-            map.put("TokenTotalSupply", tokenTotalSupply);
-
 
         }
         return ResponseResult.build(200, "query erc20 transfer datas success", map);
