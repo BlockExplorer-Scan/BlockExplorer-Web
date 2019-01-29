@@ -20,10 +20,7 @@ import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author soobeenwong
@@ -42,11 +39,11 @@ public class ERC20Tokens {
 
     @GetMapping("/queryERC20TokenTransfers")
     public ResponseResult queryERC20ByContractAddress(
-            @RequestParam(name = "contractAddress", required = true )String contractAddress,
-            @RequestParam(name = "pageStart", required = false, defaultValue = "0")Integer pageStart,
-            @RequestParam(name = "pageNum", required = false, defaultValue = "20")Integer pageNum
+            @RequestParam(name = "contractAddress", required = true) String contractAddress,
+            @RequestParam(name = "pageStart", required = false, defaultValue = "0") Integer pageStart,
+            @RequestParam(name = "pageNum", required = false, defaultValue = "20") Integer pageNum
 
-    ){
+    ) {
         List<Map<String, Object>> list = new ArrayList<>();
 
         if (contractAddress != null) {
@@ -80,9 +77,9 @@ public class ERC20Tokens {
 
     @GetMapping("/queryERC20TokenCounts")
     public ResponseResult queryERC20TokenCounts(
-            @RequestParam(name = "contractAddress", required = true )String contractAddress
+            @RequestParam(name = "contractAddress", required = true) String contractAddress
 
-    ){
+    ) {
         Map<String, Object> map = new HashMap<>();
 
         if (contractAddress != null) {
@@ -116,6 +113,37 @@ public class ERC20Tokens {
 
         }
         return ResponseResult.build(200, "query erc20 transfer datas success", map);
+    }
+
+    //获取所有erc20的合约地址
+    @GetMapping("/queryERC20Contracts")
+    public ResponseResult queryERC20TokenContract(
+            @RequestParam(name = "pageStart", required = false, defaultValue = "0") Integer pageStart,
+            @RequestParam(name = "pageNum", required = false, defaultValue = "20") Integer pageNum
+    ) {
+
+        Set<Object> set = new HashSet<>();
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+
+        boolQueryBuilder.must(QueryBuilders.matchQuery("status", coinName.getErc20()));
+
+        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("erc20")
+                .setTypes("data")
+                .setSearchType(SearchType.QUERY_THEN_FETCH)
+                .addSort("blockNumber", SortOrder.DESC)
+                .setQuery(boolQueryBuilder)
+                .setFrom(pageStart)
+                .setSize(pageNum);
+
+
+
+        for (SearchHit hit : searchRequestBuilder.get().getHits()){
+            Object address = hit.getSourceAsMap().get("address");
+            set.add(address);
+
+        }
+
+        return ResponseResult.build(200, "query Token Tracker success", set);
     }
 
 
