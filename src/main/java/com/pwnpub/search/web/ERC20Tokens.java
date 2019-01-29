@@ -165,6 +165,7 @@ public class ERC20Tokens {
 
         for (SearchHit hit : searchRequestBuilder.get().getHits()){
             set.add(hit.getSourceAsMap().get("from"));
+
             set.add(hit.getSourceAsMap().get("to"));
         }
         long size = set.size();
@@ -172,6 +173,31 @@ public class ERC20Tokens {
         return ResponseResult.build(200, "query Holders Counts success", size);
     }
 
+    //遍历Holders
+    @GetMapping("/queryERC20Holders")
+    public ResponseResult queryERC20Holders() {
+
+        Set<Object> set = new HashSet<>();
+
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+
+        boolQueryBuilder.must(QueryBuilders.matchQuery("status", coinName.getErc20()));
+
+        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("erc20")
+                .setTypes("data")
+                .setSearchType(SearchType.QUERY_THEN_FETCH)
+                .addSort("blockNumber", SortOrder.DESC)
+                .setQuery(boolQueryBuilder);
+
+        SearchResponse searchResponse = searchRequestBuilder.get();
+
+        for (SearchHit hit : searchResponse.getHits()){
+            set.add(hit.getSourceAsMap().get("from"));
+            set.add(hit.getSourceAsMap().get("to"));
+        }
+
+        return ResponseResult.build(200, "query Holders success", set);
+    }
 
 
 
