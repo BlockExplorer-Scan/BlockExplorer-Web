@@ -140,8 +140,6 @@ public class ERC20Tokens {
                 .setFrom(pageStart)
                 .setSize(pageNum);
 
-
-
         for (SearchHit hit : searchRequestBuilder.get().getHits()){
             Object address = hit.getSourceAsMap().get("address");
             set.add(address);
@@ -150,6 +148,31 @@ public class ERC20Tokens {
 
         return ResponseResult.build(200, "query Token Tracker success", set);
     }
+
+    //查询Holders总量
+    @GetMapping("/queryERC20HoldersCounts")
+    public ResponseResult queryERC20TokenContract() {
+
+        Set<Object> set = new HashSet<>();
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+
+        boolQueryBuilder.must(QueryBuilders.matchQuery("status", coinName.getErc20()));
+
+        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("erc20")
+                .setTypes("data")
+                .setSearchType(SearchType.QUERY_THEN_FETCH)
+                .setQuery(boolQueryBuilder);
+
+        for (SearchHit hit : searchRequestBuilder.get().getHits()){
+            set.add(hit.getSourceAsMap().get("from"));
+            set.add(hit.getSourceAsMap().get("to"));
+        }
+        long size = set.size();
+
+        return ResponseResult.build(200, "query Holders Counts success", size);
+    }
+
+
 
 
 }
