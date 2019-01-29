@@ -68,8 +68,12 @@ public class ERC20Tokens {
             for (SearchHit hit : searchResponse.getHits()) {
 
                 hit.getSourceAsMap().put("statusName", coinName.getErc20Name());
-                Long time = Long.parseLong(hit.getSourceAsMap().get("timestamp").toString())/1000;
-                hit.getSourceAsMap().put("timestamp",time);
+
+                if (hit.getSourceAsMap().get("timestamp") != null && CommonUtils.isNumeric0(hit.getSourceAsMap().get("timestamp").toString())) {
+                    Long time = Long.parseLong(hit.getSourceAsMap().get("timestamp").toString()) / 1000;
+                    hit.getSourceAsMap().put("timestamp", time);
+                }
+
                 list.add(hit.getSourceAsMap());
             }
 
@@ -140,7 +144,7 @@ public class ERC20Tokens {
                 .setFrom(pageStart)
                 .setSize(pageNum);
 
-        for (SearchHit hit : searchRequestBuilder.get().getHits()){
+        for (SearchHit hit : searchRequestBuilder.get().getHits()) {
             Object address = hit.getSourceAsMap().get("address");
             set.add(address);
 
@@ -163,7 +167,7 @@ public class ERC20Tokens {
                 .setSearchType(SearchType.QUERY_THEN_FETCH)
                 .setQuery(boolQueryBuilder);
 
-        for (SearchHit hit : searchRequestBuilder.get().getHits()){
+        for (SearchHit hit : searchRequestBuilder.get().getHits()) {
             set.add(hit.getSourceAsMap().get("from"));
 
             set.add(hit.getSourceAsMap().get("to"));
@@ -191,14 +195,13 @@ public class ERC20Tokens {
 
         SearchResponse searchResponse = searchRequestBuilder.get();
 
-        for (SearchHit hit : searchResponse.getHits()){
+        for (SearchHit hit : searchResponse.getHits()) {
             set.add(hit.getSourceAsMap().get("from"));
             set.add(hit.getSourceAsMap().get("to"));
         }
 
         return ResponseResult.build(200, "query Holders success", set);
     }
-
 
 
 }
