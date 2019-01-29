@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
 
@@ -179,7 +180,16 @@ public class ERC20Tokens {
 
     //遍历Holders
     @GetMapping("/queryERC20Holders")
-    public ResponseResult queryERC20Holders() {
+    public ResponseResult queryERC20Holders(
+            @RequestParam(name = "contractAddress", required = true) String contractAddress,
+            @RequestParam(name = "pageStart", required = false, defaultValue = "0") Integer pageStart,
+            @RequestParam(name = "pageNum", required = false, defaultValue = "20") Integer pageNum
+    ) {
+
+        Web3j web3 = Web3j.build(new HttpService("http://n8.ledx.xyz"));
+
+        BigInteger tokenTotalSupply = CommonUtils.getTokenTotalSupply(web3, contractAddress);
+        BigDecimal tokenTotalSupply1 =new BigDecimal(tokenTotalSupply);
 
         Set<Object> set = new HashSet<>();
 
@@ -191,7 +201,9 @@ public class ERC20Tokens {
                 .setTypes("data")
                 .setSearchType(SearchType.QUERY_THEN_FETCH)
                 .addSort("blockNumber", SortOrder.DESC)
-                .setQuery(boolQueryBuilder);
+                .setQuery(boolQueryBuilder)
+                .setFrom(pageStart)
+                .setSize(pageNum);
 
         SearchResponse searchResponse = searchRequestBuilder.get();
 
@@ -200,7 +212,25 @@ public class ERC20Tokens {
             set.add(hit.getSourceAsMap().get("to"));
         }
 
-        return ResponseResult.build(200, "query Holders success", set);
+        Iterator<Object> iterator = set.iterator();
+
+        List<Map<String, Object>> list = new ArrayList<>();
+        while (iterator.hasNext()) {
+            String next = (String)iterator.next();
+            BigInteger tokenBalance = CommonUtils.getTokenBalance(web3, next, contractAddress);
+            BigDecimal tokenBalance1 =new BigDecimal(tokenBalance);
+            BigDecimal divide = tokenBalance1.divide(tokenTotalSupply1, 4, BigDecimal.ROUND_HALF_UP);
+
+
+            Map<String,Object> map = new HashMap<>();
+            map.put("Address", next);
+            map.put("Quantity", tokenBalance);
+            map.put("Percentage", divide);
+            list.add(map);
+
+        }
+
+        return ResponseResult.build(200, "query Holders success", list);
     }
 
 
