@@ -97,19 +97,19 @@ public class CommonUtils {
     /**
      * 查询代币余额
      */
-    public static BigInteger getTokenBalance(Web3j web3j, String fromAddress, String contractAddress) {
+    public static BigInteger getTokenBalance(Web3j web3j, String address, String contractAddress) {
 
         BigInteger balanceValue = BigInteger.ZERO;
 
         try {
 
             Function function = new Function("balanceOf",
-                    Arrays.<Type>asList(),
+                    Arrays.<Type>asList(new Address(address)),
                     Arrays.<TypeReference<?>>asList(new TypeReference<Uint256>() {
                     }));
 
             String data = FunctionEncoder.encode(function);
-            Transaction transaction = Transaction.createEthCallTransaction(fromAddress, contractAddress, data);
+            Transaction transaction = Transaction.createEthCallTransaction(address, contractAddress, data);
             EthCall ethCall = web3j.ethCall(transaction, DefaultBlockParameterName.LATEST).send();
             List<Type> results = FunctionReturnDecoder.decode(ethCall.getValue(), function.getOutputParameters());
             balanceValue = (BigInteger) results.get(0).getValue();
