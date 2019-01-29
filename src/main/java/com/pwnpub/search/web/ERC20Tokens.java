@@ -40,6 +40,7 @@ public class ERC20Tokens {
     @Autowired
     private CoinName coinName;
 
+    //Transfers 列表
     @GetMapping("/queryERC20TokenTransfers")
     public ResponseResult queryERC20ByContractAddress(
             @RequestParam(name = "contractAddress", required = true )String contractAddress,
@@ -70,7 +71,8 @@ public class ERC20Tokens {
             for (SearchHit hit : searchResponse.getHits()) {
 
                 hit.getSourceAsMap().put("statusName", coinName.getErc20Name());
-
+                Long time = Long.parseLong(hit.getSourceAsMap().get("timestamp").toString())/1000;
+                hit.getSourceAsMap().put("timestamp",time);
                 list.add(hit.getSourceAsMap());
             }
 
@@ -78,6 +80,7 @@ public class ERC20Tokens {
         return ResponseResult.build(200, "query erc20 transfer datas success", list);
     }
 
+    //Total Supply 代币发行总量   TransfersCount 转账总数
     @GetMapping("/queryERC20TokenCounts")
     public ResponseResult queryERC20TokenCounts(
             @RequestParam(name = "contractAddress", required = true )String contractAddress
@@ -108,7 +111,9 @@ public class ERC20Tokens {
             try {
                 web3 = Web3j.build(new HttpService("http://n8.ledx.xyz"));
                 BigInteger tokenTotalSupply = CommonUtils.getTokenTotalSupply(web3, contractAddress);
+                int decimals = CommonUtils.getTokenDecimals(web3, contractAddress);
                 map.put("TokenTotalSupply", tokenTotalSupply);
+                map.put("decimals", decimals);
             } catch (Exception e) {
                 e.printStackTrace();
                 return ResponseResult.build(201, "call web3j failed...");
