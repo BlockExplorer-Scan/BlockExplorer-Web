@@ -1,4 +1,4 @@
- <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -6,9 +6,9 @@
     <title></title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <%--<link rel="stylesheet" href="font-awesome.min.css">--%>
+    <!--<link rel="stylesheet" href="font-awesome.min.css">-->
     <link rel="stylesheet" href="http://${header["Host"]}${pageContext.request.contextPath}/H5page/font-awesome.min.css">
-         <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+    <%@ page contentType="text/html;charset=UTF-8" language="java" %>
     <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
     <!-- 引入样式 -->
@@ -143,7 +143,6 @@
                 <p class="address" v-for="(add,addIndex) in addressArr">{{add}}<span v-if="addIndex != addressArr.length-1">;</span></p>
             </div> -->
             <div v-if="hasData" class="block-wrap">
-
                 <div class="second-div">
                     <p class="main-title">Transaction Information</p>
                     <!-- <van-cell-group>
@@ -151,7 +150,7 @@
                         <van-button slot="button" size="small" type="primary" @click="searchData">Search data</van-button>
                     </van-field>
                 </van-cell-group> -->
-                    <van-list v-model="loading" :finished="finished" finished-text="No more data" @load="pushArr"
+                    <van-list v-model="loading" :finished="finished" finished-text="No more data" @load="last"
                         loading-text="Data loading..." :offset="offset">
                         <div class="block-item" v-for="(list,index) in listArr" :key="index">
                             <div class="first-div">
@@ -201,6 +200,7 @@
     </div>
     </div>
     <div v-else style="text-align:center">
+        <!--<img src="noData.jpg" alt="" style="margin: 100px auto;margin-bottom: 0">-->
         <img src="http://${header["Host"]}${pageContext.request.contextPath}/H5page/noData.jpg" alt="" style="margin: 100px auto;margin-bottom: 0">
         <p>暂无数据</p>
     </div>
@@ -228,9 +228,9 @@
                 isLoading: false,
                 latestBlock: '',
                 hasData: true,
-                addressArr: []
-                // pageStart: 0,
-                // pageNum: 5
+                addressArr: [],
+                pageStart: 0,//页码
+                pageNum: 10//每次获取的条数
             },
             filters: {
                 timeFilter(timestamp) {
@@ -269,13 +269,13 @@
                 /*if (this.get_url_json.addresses) {
                     this.addresses = this.get_url_json.id
                 }*/
-                this.last()
-                 if("${addresses}"){
-                     this.addresses = "${addresses}"
-                 }
-                 if("${addresses}"){
-                     this.addressArr = "${addresses}".split(',')
-                 }
+                // this.last()
+                if("${addresses}"){
+                    this.addresses = "${addresses}"
+                }
+                if("${addresses}"){
+                    this.addressArr = "${addresses}".split(',')
+                }
             },
             mounted() {
 
@@ -367,7 +367,7 @@
                 onLoad() {
                     let _this = this;
                     let ajaxJson = {
-                        //url: 'http://18.179.50.113/Search-Web/App/queryTransactionRecord',
+                        // url: 'http://18.179.50.113/Search-Web/App/queryTransactionRecord',
                         // url: 'http://192.168.0.112:8080/App/queryTransactionRecord',
                         url: 'http://${header["Host"]}${pageContext.request.contextPath}/App/queryTransactionRecord',
                         method: 'post',
@@ -376,15 +376,17 @@
                         dataType: 'json',
                         data: {
                             addresseStr: _this.addresses,
+                            pageStart: _this.pageStart,
+                            pageNum: _this.pageNum,
                         },
                         success: function (res) {
                             console.log(res);
                             if (res.status == 200 && res.data.length != 0) {
-                                // _this.loading = false;
+                                _this.loading = false;
 
                                 _this.hasData = true;
                                 console.log(res.data);
-                                res.data.sort(_this.by('blockNumber'))
+                                // res.data.sort(_this.by('blockNumber'))
                                 for (let i = 0; i < res.data.length; i++) {
                                     res.data[i].id = ((_this.latestBlock - res.data[i].blockNumber) * 8.3).toFixed(0)
                                     if (_this.latestBlock - res.data[i].blockNumber > 11) {
@@ -392,14 +394,16 @@
                                     } else {
                                         res.data[i].sid = i * 8.3
                                     }
-
+                                    _this.listArr.push(res.data[i])
                                 }
+                                _this.pageStart = _this.listArr.length -1
                                 // _this.listArr = res.data;
-                                _this.allArr = res.data;
+                                // _this.allArr = res.data;
                                 console.log(11111111111 + _this.allArr);
                             } else {
                                 _this.hasData = false;
                                 _this.loading = false;
+                                _this.finished = true;
                                 // _this.$toast({
                                 //     mask: true,
                                 //     message: "数据请求失败,请刷新重试"
