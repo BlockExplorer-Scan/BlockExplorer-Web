@@ -116,6 +116,7 @@ public class ERC20Tokens {
                 int decimals = CommonUtils.getTokenDecimals(web3, contractAddress);
                 map.put("TokenTotalSupply", tokenTotalSupply);
                 map.put("decimals", decimals);
+                map.put("statusName", coinName.getErc20Name());
             } catch (Exception e) {
                 e.printStackTrace();
                 return ResponseResult.build(201, "call web3j failed...");
@@ -220,7 +221,7 @@ public class ERC20Tokens {
             String next = (String)iterator.next();
             BigInteger tokenBalance = CommonUtils.getTokenBalance(web3, next, contractAddress);
             BigDecimal tokenBalance1 =new BigDecimal(tokenBalance);
-            BigDecimal divide = tokenBalance1.divide(tokenTotalSupply1, 4, BigDecimal.ROUND_HALF_UP);
+            BigDecimal divide = tokenBalance1.divide(tokenTotalSupply1, 6, BigDecimal.ROUND_HALF_UP);
 
 
             Map<String,Object> map = new HashMap<>();
