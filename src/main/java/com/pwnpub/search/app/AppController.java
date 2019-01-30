@@ -495,8 +495,6 @@ public class AppController {
 
             }
 
-
-
             return ResponseResult.build(200, "h5:查询交易成功", list);
         }
         return null;
