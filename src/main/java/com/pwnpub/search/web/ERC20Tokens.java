@@ -166,7 +166,8 @@ public class ERC20Tokens {
         SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("erc20")
                 .setTypes("data")
                 .setSearchType(SearchType.QUERY_THEN_FETCH)
-                .setQuery(boolQueryBuilder);
+                .setQuery(boolQueryBuilder)
+                .setSize(10000);
 
         for (SearchHit hit : searchRequestBuilder.get().getHits()) {
             set.add(hit.getSourceAsMap().get("from"));
