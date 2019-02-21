@@ -3,13 +3,21 @@ package com.pwnpub.search.web;
 import com.pwnpub.search.config.CoinName;
 import com.pwnpub.search.utils.CommonUtils;
 import com.pwnpub.search.utils.ResponseResult;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms;
+import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +30,7 @@ import org.web3j.protocol.http.HttpService;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author soobeenwong
@@ -37,6 +46,8 @@ public class ERC20Tokens {
 
     @Autowired
     private CoinName coinName;
+
+    private static final Logger logger = LogManager.getLogger(ERC20Tokens.class);
 
     //Transfers 列表
     @GetMapping("/queryERC20TokenTransfers")
@@ -129,11 +140,9 @@ public class ERC20Tokens {
     //获取所有erc20的合约地址
     @GetMapping("/queryERC20Contracts")
     public ResponseResult queryERC20TokenContract(
-            @RequestParam(name = "pageStart", required = false, defaultValue = "0") Integer pageStart,
-            @RequestParam(name = "pageNum", required = false, defaultValue = "20") Integer pageNum
     ) {
 
-        Set<Object> set = new HashSet<>();
+        /*Set<Object> set = new HashSet<>();
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
         boolQueryBuilder.must(QueryBuilders.matchQuery("status", coinName.getErc20()));
@@ -143,21 +152,50 @@ public class ERC20Tokens {
                 .setSearchType(SearchType.QUERY_THEN_FETCH)
                 .addSort("blockNumber", SortOrder.DESC)
                 .setQuery(boolQueryBuilder)
-                .setFrom(pageStart)
+                 .setFrom(pageStart)
                 .setSize(pageNum);
 
         for (SearchHit hit : searchRequestBuilder.get().getHits()) {
             Object address = hit.getSourceAsMap().get("address");
             set.add(address);
 
+        }*/
+
+
+        /**
+         * 统计出共有多少代币
+         */
+        BoolQueryBuilder boolQueryBuilderToken = new BoolQueryBuilder();
+        boolQueryBuilderToken.must(new TermQueryBuilder("status", "erc20"));
+        //聚合处理
+        SearchSourceBuilder sourceBuilderToken = new SearchSourceBuilder();
+        TermsAggregationBuilder termsAggregationBuilderToken = AggregationBuilders.terms("group_token_count").field("address");
+        sourceBuilderToken.aggregation(termsAggregationBuilderToken);
+        sourceBuilderToken.query(boolQueryBuilderToken);
+        //查询索引对象
+        SearchRequest searchRequestToken = new SearchRequest("erc20");
+        searchRequestToken.types("data");
+        searchRequestToken.source(sourceBuilderToken);
+        SearchResponse responseToken = null;
+        try {
+            responseToken = client.search(searchRequestToken).get();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        Terms termsToken = responseToken.getAggregations().get("group_token_count");
+        logger.info(" joon -- StorageJob - erc20 代币量 -- {}", termsToken.getBuckets().size());
+        List<Object> list = new ArrayList<>();
+        for (Terms.Bucket token : termsToken.getBuckets()) {
+            Object key = token.getKey();
+            list.add(key);
         }
 
-        return ResponseResult.build(200, "query Token Tracker success", set);
+        return ResponseResult.build(200, "query Token Tracker success", list);
     }
 
     //查询Holders总量
-    @GetMapping("/queryERC20HoldersCounts")
-    public ResponseResult queryERC20TokenContract() {
+    @GetMapping("/queryERC20HoldersCountsTest")
+    public ResponseResult queryERC20HoldersCountsTest() {
 
         Set<Object> set = new HashSet<>();
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
@@ -234,6 +272,44 @@ public class ERC20Tokens {
 
         return ResponseResult.build(200, "query Holders success", list);
     }
+
+    //hj
+    //遍历Holders
+    @GetMapping("/queryERC20HoldersCounts")
+    public ResponseResult queryERC20HoldersCounts(
+            //0x70f4f4731f6473abc60a31dcc1e9b7b702e8b9c3
+            @RequestParam(name = "contractAddress", required = true) String contractAddress
+    ) {
+
+        try {
+
+            BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder();
+            boolQueryBuilder.must(new TermQueryBuilder("status","erc20"));
+            boolQueryBuilder.must(new TermQueryBuilder("address",contractAddress));
+            //聚合处理
+            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+            TermsAggregationBuilder termsAggregationBuilder = AggregationBuilders.terms("group_to_count").field("to");
+            sourceBuilder.aggregation(termsAggregationBuilder);
+            sourceBuilder.query(boolQueryBuilder);
+
+            //查询索引对象
+            SearchRequest searchRequest = new SearchRequest("erc20");
+            searchRequest.types("data");
+            searchRequest.source(sourceBuilder);
+            SearchResponse response = client.search(searchRequest).get();
+
+            Terms terms = response.getAggregations().get("group_to_count");
+
+            logger.info("账户地址数量 -- {}",terms.getBuckets().size());
+
+            return ResponseResult.build(200, "query Holders success", terms.getBuckets().size());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
 
 
 }
