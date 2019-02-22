@@ -223,9 +223,9 @@ public class ERC20Tokens {
     public ResponseResult queryERC20Holders(
             @RequestParam(name = "contractAddress", required = true) String contractAddress,
             @RequestParam(name = "pageStart", required = false, defaultValue = "0") Integer pageStart,
-            @RequestParam(name = "pageNum", required = false, defaultValue = "20") Integer pageNum
+            @RequestParam(name = "pageNum", required = false, defaultValue = "10") Integer pageNum
     ) {
-
+        /*
         Web3j web3 = Web3j.build(new HttpService("http://n8.ledx.xyz"));
 
         BigInteger tokenTotalSupply = CommonUtils.getTokenTotalSupply(web3, contractAddress);
@@ -270,7 +270,35 @@ public class ERC20Tokens {
 
         }
 
-        return ResponseResult.build(200, "query Holders success", list);
+        return ResponseResult.build(200, "query Holders success", list); */
+
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+
+        boolQueryBuilder.must(QueryBuilders.matchQuery("erc20name", contractAddress));
+
+        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("erc20token")
+                .setTypes("data")
+                .setSearchType(SearchType.QUERY_THEN_FETCH)
+                .addSort("percentage", SortOrder.DESC)
+                .setQuery(boolQueryBuilder)
+                .setFrom(pageStart)
+                .setSize(pageNum);
+
+        SearchResponse searchResponse = searchRequestBuilder.get();
+
+        List<Map<String, Object>> list = new ArrayList<>();
+
+        for (SearchHit hit : searchResponse.getHits()) {
+
+            Map<String, Object> map = new HashMap<>();
+
+            map.put("address", hit.getSourceAsMap().get("address"));
+            map.put("quantity", hit.getSourceAsMap().get("quantity"));
+            map.put("percentage", hit.getSourceAsMap().get("percentage"));
+            list.add(map);
+        }
+
+        return ResponseResult.build(200, "query Holds success", list);
     }
 
     //hj
