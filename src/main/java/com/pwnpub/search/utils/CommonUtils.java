@@ -6,6 +6,7 @@ import org.web3j.abi.TypeReference;
 import org.web3j.abi.datatypes.Address;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Type;
+import org.web3j.abi.datatypes.Utf8String;
 import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.abi.datatypes.generated.Uint8;
 import org.web3j.protocol.Web3j;
@@ -118,6 +119,39 @@ public class CommonUtils {
             e.printStackTrace();
         }
         return balanceValue;
+    }
+
+    /**
+     * web3查询代币名称
+     *
+     * @param web3j
+     * @param contractAddress
+     * @return
+     */
+    public static String getTokenName(Web3j web3j, String contractAddress) {
+        String methodName = "name";
+        String name = null;
+        List<Type> inputParameters = new ArrayList<>();
+        List<TypeReference<?>> outputParameters = new ArrayList<>();
+
+        TypeReference<Utf8String> typeReference = new TypeReference<Utf8String>() {
+        };
+        outputParameters.add(typeReference);
+
+        Function function = new Function(methodName, inputParameters, outputParameters);
+
+        String data = FunctionEncoder.encode(function);
+        Transaction transaction = Transaction.createEthCallTransaction(null, contractAddress, data);
+
+        EthCall ethCall;
+        try {
+            ethCall = web3j.ethCall(transaction, DefaultBlockParameterName.LATEST).sendAsync().get();
+            List<Type> results = FunctionReturnDecoder.decode(ethCall.getValue(), function.getOutputParameters());
+            name = results.get(0).getValue().toString();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+        return name;
     }
 
 }

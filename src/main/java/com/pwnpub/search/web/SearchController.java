@@ -191,22 +191,27 @@ public class SearchController {
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
         if (hash != null) {
+            logger.info("参数：hash");
             boolQueryBuilder.must(QueryBuilders.matchQuery("hash", hash));
         }
 
         if (blockNumber != null) {
+            logger.info("参数：blockNumber");
             boolQueryBuilder.must(QueryBuilders.matchQuery("blockNumber", blockNumber));
         }
 
         if (miner != null) {
+            logger.info("参数：miner");
             boolQueryBuilder.must(QueryBuilders.matchQuery("from", miner));
         }
 
         if (status != null) {
+            logger.info("参数：status");
             boolQueryBuilder.must(QueryBuilders.matchQuery("status", status));
         }
 
         if (to != null) {
+            logger.info("参数：to");
             BoolQueryBuilder query = QueryBuilders.boolQuery();
             query.should(QueryBuilders.matchQuery("to", to));
             query.should(QueryBuilders.matchQuery("from", to));
@@ -215,6 +220,7 @@ public class SearchController {
         }
 
         if (from != null) {
+            logger.info("参数：from");
             BoolQueryBuilder q = QueryBuilders.boolQuery();
             q.should(QueryBuilders.matchQuery("from", from));
             q.should(QueryBuilders.matchQuery("to", from));

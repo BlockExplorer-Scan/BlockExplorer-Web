@@ -20,6 +20,12 @@ import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilde
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.PropertiesFactoryBean;
+import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -27,10 +33,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
 
-import java.math.BigDecimal;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 
 /**
  * @author soobeenwong
@@ -46,6 +51,12 @@ public class ERC20Tokens {
 
     @Autowired
     private CoinName coinName;
+
+    @Autowired
+    ConfigurableApplicationContext configurableApplicationContext;
+
+    @Autowired
+    Web3j web3j;
 
     private static final Logger logger = LogManager.getLogger(ERC20Tokens.class);
 
@@ -163,7 +174,7 @@ public class ERC20Tokens {
 
 
         /**
-         * 统计出共有多少代币
+         * 统计出共有多少代币并且遍历
          */
         BoolQueryBuilder boolQueryBuilderToken = new BoolQueryBuilder();
         boolQueryBuilderToken.must(new TermQueryBuilder("status", "erc20"));
@@ -184,11 +195,45 @@ public class ERC20Tokens {
         }
         Terms termsToken = responseToken.getAggregations().get("group_token_count");
         logger.info(" joon -- StorageJob - erc20 代币量 -- {}", termsToken.getBuckets().size());
+
         List<Object> list = new ArrayList<>();
+        Map<String, Object> map = new HashMap<>();
         for (Terms.Bucket token : termsToken.getBuckets()) {
             Object key = token.getKey();
-            list.add(key);
+
+            String tokenName = configurableApplicationContext.getEnvironment().getProperty(key.toString());
+            if(StringUtils.isEmpty(tokenName)){
+                //链上的币名
+                tokenName = CommonUtils.getTokenName(web3j, key.toString());
+            }
+                map.put(tokenName, key);
+
+//
+//
+//            if (key.equals(configurableApplicationContext.getEnvironment().getProperty(key.toString()))) {
+//                map.put("CCB", key);
+//            }
+//            if (key.equals(configurableApplicationContext.getEnvironment().getProperty("coin.ETH"))) {
+//                map.put("ETH", key);
+//            }
+//            if (key.equals(configurableApplicationContext.getEnvironment().getProperty("coin.GQB"))) {
+//                map.put("GQB", key);
+//            }
+//            if (key.equals(configurableApplicationContext.getEnvironment().getProperty("coin.HDB"))) {
+//                map.put("HDB", key);
+//            }
+//            if (key.equals(configurableApplicationContext.getEnvironment().getProperty("coin.ROSS"))) {
+//                map.put("ROSS", key);
+//            }
+//            if (key.equals(configurableApplicationContext.getEnvironment().getProperty("coin.TIT"))) {
+//                map.put("TIT", key);
+//            }
+//            if (key.equals(configurableApplicationContext.getEnvironment().getProperty("coin.UGB"))) {
+//                map.put("UGB", key);
+//            }
+
         }
+        list.add(map);
 
         return ResponseResult.build(200, "query Token Tracker success", list);
     }
@@ -279,7 +324,7 @@ public class ERC20Tokens {
         SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("erc20token")
                 .setTypes("data")
                 .setSearchType(SearchType.QUERY_THEN_FETCH)
-                .addSort("percentage", SortOrder.DESC)
+                .addSort("quantity", SortOrder.DESC)
                 .setQuery(boolQueryBuilder)
                 .setFrom(pageStart)
                 .setSize(pageNum);
@@ -292,17 +337,16 @@ public class ERC20Tokens {
 
             Map<String, Object> map = new HashMap<>();
 
-            map.put("address", hit.getSourceAsMap().get("address"));
-            map.put("quantity", hit.getSourceAsMap().get("quantity"));
-            map.put("percentage", hit.getSourceAsMap().get("percentage"));
+            map.put("Address", hit.getSourceAsMap().get("address"));
+            map.put("Quantity", hit.getSourceAsMap().get("quantity"));
+            map.put("Percentage", hit.getSourceAsMap().get("percentage"));
             list.add(map);
         }
 
         return ResponseResult.build(200, "query Holds success", list);
     }
 
-    //hj
-    //遍历Holders
+    //hj--统计Holder数量
     @GetMapping("/queryERC20HoldersCounts")
     public ResponseResult queryERC20HoldersCounts(
             //0x70f4f4731f6473abc60a31dcc1e9b7b702e8b9c3
@@ -337,6 +381,8 @@ public class ERC20Tokens {
 
         return null;
     }
+
+
 
 
 
