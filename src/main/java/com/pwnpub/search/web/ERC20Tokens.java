@@ -3,19 +3,20 @@ package com.pwnpub.search.web;
 import com.pwnpub.search.config.CoinName;
 import com.pwnpub.search.utils.CommonUtils;
 import com.pwnpub.search.utils.ResponseResult;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.util.DigestUtils;
+import org.springframework.web.bind.annotation.*;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
 
@@ -181,58 +182,95 @@ public class ERC20Tokens {
     }
 
     //遍历Holders
-    @GetMapping("/queryERC20Holders")
+    @PostMapping("/queryERC20Holders")
     public ResponseResult queryERC20Holders(
-            @RequestParam(name = "contractAddress", required = true) String contractAddress,
+            @RequestParam(name = "contractAddress") String contractAddress,
+            @RequestParam(name = "timestamp") long timestamp,
+            @RequestParam(name = "token") String token,
+            @RequestParam(name = "sign") String sign,
             @RequestParam(name = "pageStart", required = false, defaultValue = "0") Integer pageStart,
             @RequestParam(name = "pageNum", required = false, defaultValue = "20") Integer pageNum
     ) {
+        try {
+            Date date = new Date();
+            long outTime = date.getTime() + 30 * 1000 * 60;
+            if (timestamp > outTime) {
+                return ResponseResult.build(300, "error", "time out");
+            }
+            BoolQueryBuilder tokemBoolQueryBuilder = new BoolQueryBuilder();
+            tokemBoolQueryBuilder.must(QueryBuilders.termQuery("token", token));
+            //聚合处理
+            SearchSourceBuilder tokenSourceBuilder = new SearchSourceBuilder();
+            tokenSourceBuilder.query(tokemBoolQueryBuilder);
 
-        Web3j web3 = Web3j.build(new HttpService("http://n8.ledx.xyz"));
+            //查询索引对象
+            SearchRequest searchRequest = new SearchRequest("user");
+            searchRequest.types("data");
+            searchRequest.source(tokenSourceBuilder);
 
-        BigInteger tokenTotalSupply = CommonUtils.getTokenTotalSupply(web3, contractAddress);
-        BigDecimal tokenTotalSupply1 =new BigDecimal(tokenTotalSupply);
+            SearchResponse response = this.client.search(searchRequest).get();
+            long count = response.getHits().getTotalHits();
 
-        Set<Object> set = new HashSet<>();
+            if (count == 0) {
+                return ResponseResult.build(300, "error", " token invalid ");
+            }
+            String signStr = "contractAddress=" + contractAddress + "&timestamp=" + timestamp + "&token=" + token;
+            String signVerify = DigestUtils.md5DigestAsHex(signStr.getBytes());
 
-        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+            if(!sign.equals(signVerify)){
+                return ResponseResult.build(300, "error", " sign invalid ");
+            }
 
-        boolQueryBuilder.must(QueryBuilders.matchQuery("status", coinName.getErc20()));
 
-        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("erc20")
-                .setTypes("data")
-                .setSearchType(SearchType.QUERY_THEN_FETCH)
-                .addSort("blockNumber", SortOrder.DESC)
-                .setQuery(boolQueryBuilder)
-                .setFrom(pageStart)
-                .setSize(pageNum);
+            Web3j web3 = Web3j.build(new HttpService("http://n8.ledx.xyz"));
 
-        SearchResponse searchResponse = searchRequestBuilder.get();
+            BigInteger tokenTotalSupply = CommonUtils.getTokenTotalSupply(web3, contractAddress);
+            BigDecimal tokenTotalSupply1 = new BigDecimal(tokenTotalSupply);
 
-        for (SearchHit hit : searchResponse.getHits()) {
-            set.add(hit.getSourceAsMap().get("from"));
-            set.add(hit.getSourceAsMap().get("to"));
+            Set<Object> set = new HashSet<>();
+
+            BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+
+            boolQueryBuilder.must(QueryBuilders.matchQuery("status", coinName.getErc20()));
+
+            SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("erc20")
+                    .setTypes("data")
+                    .setSearchType(SearchType.QUERY_THEN_FETCH)
+                    .addSort("blockNumber", SortOrder.DESC)
+                    .setQuery(boolQueryBuilder)
+                    .setFrom(pageStart)
+                    .setSize(pageNum);
+
+            SearchResponse searchResponse = searchRequestBuilder.get();
+
+            for (SearchHit hit : searchResponse.getHits()) {
+                set.add(hit.getSourceAsMap().get("from"));
+                set.add(hit.getSourceAsMap().get("to"));
+            }
+
+            Iterator<Object> iterator = set.iterator();
+
+            List<Map<String, Object>> list = new ArrayList<>();
+            while (iterator.hasNext()) {
+                String next = (String) iterator.next();
+                BigInteger tokenBalance = CommonUtils.getTokenBalance(web3, next, contractAddress);
+                BigDecimal tokenBalance1 = new BigDecimal(tokenBalance);
+                BigDecimal divide = tokenBalance1.divide(tokenTotalSupply1, 6, BigDecimal.ROUND_HALF_UP);
+
+
+                Map<String, Object> map = new HashMap<>();
+                map.put("Address", next);
+                map.put("Quantity", tokenBalance);
+                map.put("Percentage", divide);
+                list.add(map);
+
+            }
+
+            return ResponseResult.build(300, "query Holders success", list);
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
-
-        Iterator<Object> iterator = set.iterator();
-
-        List<Map<String, Object>> list = new ArrayList<>();
-        while (iterator.hasNext()) {
-            String next = (String)iterator.next();
-            BigInteger tokenBalance = CommonUtils.getTokenBalance(web3, next, contractAddress);
-            BigDecimal tokenBalance1 =new BigDecimal(tokenBalance);
-            BigDecimal divide = tokenBalance1.divide(tokenTotalSupply1, 6, BigDecimal.ROUND_HALF_UP);
-
-
-            Map<String,Object> map = new HashMap<>();
-            map.put("Address", next);
-            map.put("Quantity", tokenBalance);
-            map.put("Percentage", divide);
-            list.add(map);
-
-        }
-
-        return ResponseResult.build(200, "query Holders success", list);
+        return ResponseResult.build(200, "error", null);
     }
 
 

@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
@@ -20,11 +21,16 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.web3j.protocol.Web3j;
@@ -41,6 +47,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author soobeenwong
@@ -62,13 +69,13 @@ public class SearchController {
     private final int Seconds = 86400000;
 
     @GetMapping("/index")
-    public String index( HttpServletRequest request,HttpServletResponse response){
+    public String index(HttpServletRequest request, HttpServletResponse response) {
 
         return "index";
     }
 
     @GetMapping("/get/allblock/data")
-    public ResponseEntity get(@RequestParam(name = "id",defaultValue = "")String id){
+    public ResponseEntity get(@RequestParam(name = "id", defaultValue = "") String id) {
 
         GetResponse result = this.client.prepareGet("block", "data", id).get();
 
@@ -83,10 +90,10 @@ public class SearchController {
 
     @GetMapping("/query/block/data")
     public ResponseResult queryBlock(
-            @RequestParam(name = "pageStart", required = false, defaultValue = "0")Integer pageStart,
-            @RequestParam(name = "pageNum", required = false, defaultValue = "10")Integer pageNum
+            @RequestParam(name = "pageStart", required = false, defaultValue = "0") Integer pageStart,
+            @RequestParam(name = "pageNum", required = false, defaultValue = "10") Integer pageNum
 
-    ){
+    ) {
         logger.info("get into query/block/data");
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
@@ -111,10 +118,10 @@ public class SearchController {
 
     @GetMapping("/queryBlockByValue")
     public ResponseResult queryBlockByNum(
-            @RequestParam(name = "hash", required = false)String hash,
-            @RequestParam(name = "number", required = false)Integer number
+            @RequestParam(name = "hash", required = false) String hash,
+            @RequestParam(name = "number", required = false) Integer number
 
-    ){
+    ) {
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
         if (number != null) {
@@ -144,10 +151,10 @@ public class SearchController {
 
     @GetMapping("/query/transaction/data")
     public ResponseResult queryTransaction(
-            @RequestParam(name = "pageStart", required = false, defaultValue = "0")Integer pageStart,
-            @RequestParam(name = "pageNum", required = false, defaultValue = "10")Integer pageNum
+            @RequestParam(name = "pageStart", required = false, defaultValue = "0") Integer pageStart,
+            @RequestParam(name = "pageNum", required = false, defaultValue = "10") Integer pageNum
 
-    ){
+    ) {
 
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
@@ -174,17 +181,17 @@ public class SearchController {
     //分页 0-25    添加统计数量
     @GetMapping("/queryTransactionByValue")
     public ResponseResult queryTransactionByValue(
-            @RequestParam(name = "hash", required = false)String hash,
-            @RequestParam(name = "blockNumber", required = false)Integer blockNumber,
+            @RequestParam(name = "hash", required = false) String hash,
+            @RequestParam(name = "blockNumber", required = false) Integer blockNumber,
             @RequestParam(name = "miner", required = false) String miner,
             @RequestParam(name = "status", required = false) String status,
             @RequestParam(name = "to", required = false) String to,
             @RequestParam(name = "from", required = false) String from,
-            @RequestParam(name = "pageStart", required = false, defaultValue = "0")Integer pageStart,
-            @RequestParam(name = "pageNum", required = false, defaultValue = "25")Integer pageNum
+            @RequestParam(name = "pageStart", required = false, defaultValue = "0") Integer pageStart,
+            @RequestParam(name = "pageNum", required = false, defaultValue = "25") Integer pageNum
 
 
-    ){
+    ) {
         logger.info("get into queryTransactionByValue , 【Paging query】");
         List<Map<String, Object>> list = new ArrayList<>();
 
@@ -296,9 +303,9 @@ public class SearchController {
     //analyze erc20 event
     @GetMapping("/queryERC20ByTransaction")
     public ResponseResult queryERC20ByTransaction(
-            @RequestParam(name = "transactionHash", required = true )String transactionHash
+            @RequestParam(name = "transactionHash", required = true) String transactionHash
 
-    ){
+    ) {
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
         if (transactionHash != null) {
@@ -327,11 +334,11 @@ public class SearchController {
     //查询erc20 所有转账记录  分页
     @GetMapping("/queryERC20ByContractAddress")
     public ResponseResult queryERC20ByContractAddress(
-            @RequestParam(name = "contractAddress", required = true )String contractAddress,
-            @RequestParam(name = "pageStart", required = false, defaultValue = "0")Integer pageStart,
-            @RequestParam(name = "pageNum", required = false, defaultValue = "25")Integer pageNum
+            @RequestParam(name = "contractAddress", required = true) String contractAddress,
+            @RequestParam(name = "pageStart", required = false, defaultValue = "0") Integer pageStart,
+            @RequestParam(name = "pageNum", required = false, defaultValue = "25") Integer pageNum
 
-    ){
+    ) {
         List<Map<String, Object>> list = new ArrayList<>();
 
         if (contractAddress != null) {
@@ -369,11 +376,11 @@ public class SearchController {
     //主币内部转账记录
     @GetMapping("/queryMainCoinByContractAddress")
     public ResponseResult queryMainCoinByContractAddress(
-            @RequestParam(name = "contractAddress", required = true )String contractAddress,
-            @RequestParam(name = "pageStart", required = false, defaultValue = "0")Integer pageStart,
-            @RequestParam(name = "pageNum", required = false, defaultValue = "25")Integer pageNum
+            @RequestParam(name = "contractAddress", required = true) String contractAddress,
+            @RequestParam(name = "pageStart", required = false, defaultValue = "0") Integer pageStart,
+            @RequestParam(name = "pageNum", required = false, defaultValue = "25") Integer pageNum
 
-    ){
+    ) {
         List<Map<String, Object>> list = new ArrayList<>();
 
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
@@ -421,10 +428,10 @@ public class SearchController {
     //统计交易数量
     @GetMapping("/queryTxsCounts")
     public ResponseResult queryTxsCounts(
-            @RequestParam(name = "address", required = true)String address
+            @RequestParam(name = "address", required = true) String address
 
 
-    ){
+    ) {
 
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
@@ -450,7 +457,7 @@ public class SearchController {
         try {
             web3ClientVersion = web3.web3ClientVersion().send();
             String clientVersion = web3ClientVersion.getWeb3ClientVersion();
-            logger.info("私链的版本是："+clientVersion);
+            logger.info("私链的版本是：" + clientVersion);
         } catch (IOException e) {
             e.printStackTrace();
             logger.error("节点连接失败！");
@@ -458,7 +465,7 @@ public class SearchController {
         //获取余额
         try {
             EthGetBalance ethGetBalance = web3.ethGetBalance(address, DefaultBlockParameterName.LATEST).send();
-            if(ethGetBalance!=null){
+            if (ethGetBalance != null) {
                 // 打印账户余额
                 System.out.println(ethGetBalance.getBalance());
                 // 将单位转为以太，方便查看
@@ -494,7 +501,7 @@ public class SearchController {
 
                     if (!CommonUtils.isNumeric0(data) || Integer.parseInt(data) > bigInteger.intValue()) {
                         map.put("status", "1");
-                    }else {
+                    } else {
                         map.put("status", "0");
                     }
 
@@ -521,7 +528,41 @@ public class SearchController {
     //获取服务器系统时间
     @GetMapping("/date")
     public ResponseResult date() {
-        return ResponseResult.build(200, "success",new Date().getTime()/1000);
+        return ResponseResult.build(200, "success", new Date().getTime() / 1000);
     }
+
+
+    //登录
+    @PostMapping("/login")
+    public ResponseResult login(@RequestParam String username,@RequestParam String password) {
+        try {
+            String md5 = DigestUtils.md5DigestAsHex(password.getBytes());
+
+            BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder();
+            boolQueryBuilder.must(new TermQueryBuilder("username", username));
+            boolQueryBuilder.must(new TermQueryBuilder("password", md5));
+            //聚合处理
+            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+            sourceBuilder.query(boolQueryBuilder);
+
+            //查询索引对象
+            SearchRequest searchRequest = new SearchRequest("user");
+            searchRequest.types("data");
+            searchRequest.source(sourceBuilder);
+
+            SearchResponse response = client.search(searchRequest).get();
+            String token = "";
+            for (SearchHit hit : response.getHits()) {
+                token = hit.getSourceAsMap().get("token").toString();
+            }
+
+            return ResponseResult.build(200, "success", token);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ResponseResult.build(300, "error", null);
+    }
+
 
 }
