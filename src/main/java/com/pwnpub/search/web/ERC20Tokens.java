@@ -381,11 +381,11 @@ public class ERC20Tokens {
             list.add(map);
         }
 
-            return ResponseResult.build(300, "query Holders success", list);
+            return ResponseResult.build(200, "query Holders success", list);
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-        return ResponseResult.build(200, "error", null);
+        return ResponseResult.build(300, "error", null);
     }
 
     //hj--统计Holder数量
