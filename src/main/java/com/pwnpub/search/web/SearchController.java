@@ -560,9 +560,8 @@ public class SearchController {
             String token = "";
             for (SearchHit hit : response.getHits()) {
                 token = hit.getSourceAsMap().get("token").toString();
+                return ResponseResult.build(200, "success", token);
             }
-
-            return ResponseResult.build(200, "success", token);
 
         } catch (Exception e) {
             e.printStackTrace();
