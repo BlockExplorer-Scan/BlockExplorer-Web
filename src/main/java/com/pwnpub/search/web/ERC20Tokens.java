@@ -142,7 +142,10 @@ public class ERC20Tokens {
                 int decimals = CommonUtils.getTokenDecimals(web3, contractAddress);
                 map.put("TokenTotalSupply", tokenTotalSupply);
                 map.put("decimals", decimals);
-                map.put("statusName", coinName.getErc20Name());
+
+                String tokenName = configurableApplicationContext.getEnvironment().getProperty(contractAddress);
+                map.put("statusName", tokenName);
+
             } catch (Exception e) {
                 e.printStackTrace();
                 return ResponseResult.build(201, "call web3j failed...");
