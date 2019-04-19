@@ -15,7 +15,12 @@ import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.aggregations.Aggregation;
+import org.elasticsearch.search.aggregations.Aggregations;
+import org.elasticsearch.search.aggregations.InternalAggregation;
 import org.elasticsearch.search.aggregations.metrics.cardinality.CardinalityAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.cardinality.InternalCardinality;
+import org.elasticsearch.search.aggregations.metrics.sum.Sum;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
@@ -427,11 +432,11 @@ public class ERC20Tokens {
             searchRequest.source(sourceBuilder);
             SearchResponse response = client.search(searchRequest).get();
 
-            Terms terms = response.getAggregations().get("to_count");
+            InternalCardinality internalCardinality = response.getAggregations().get("to_count");
 
-            logger.info("账户地址数量 -- {}",terms.getBuckets().size());
+            logger.info("账户地址数量 -- {}",internalCardinality.getValue());
 
-            return ResponseResult.build(200, "query Holders success", terms.getBuckets().size());
+            return ResponseResult.build(200, "query Holders success", internalCardinality.getValue());
         } catch (Exception e) {
             e.printStackTrace();
         }
