@@ -28,6 +28,7 @@ import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilde
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.DigestUtils;
@@ -49,6 +50,8 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
+import static com.pwnpub.search.entity.EsTableEnum.*;
+
 /**
  * @author soobeenwong
  * @date 2018-11-02 8:39 PM
@@ -63,6 +66,12 @@ public class SearchController {
 
     @Autowired
     private CoinName coinName;
+
+    @Autowired
+    ConfigurableApplicationContext configurableApplicationContext;
+
+    @Autowired
+    Web3j web3j;
 
     private static final Logger logger = LogManager.getLogger(SearchController.class);
 
@@ -97,7 +106,7 @@ public class SearchController {
         logger.info("get into query/block/data");
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
-        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("block")
+        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(BLOCK.toString())
                 .setTypes("data")
                 .addSort("number", SortOrder.DESC)
                 .setSearchType(SearchType.QUERY_THEN_FETCH) //小数量查询
@@ -110,6 +119,10 @@ public class SearchController {
         List<Map<String, Object>> list = new ArrayList<>();
 
         for (SearchHit hit : searchResponse.getHits()) {
+
+            String maincoinName = configurableApplicationContext.getEnvironment().getProperty("maincoinName");
+            hit.getSourceAsMap().put("maincoinName", maincoinName);
+
             list.add(hit.getSourceAsMap());
         }
 
@@ -133,7 +146,7 @@ public class SearchController {
         }
 
 
-        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("block")
+        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(BLOCK.toString())
                 .setTypes("data")
                 .setSearchType(SearchType.QUERY_THEN_FETCH) //小数量查询
                 .setQuery(boolQueryBuilder);
@@ -143,7 +156,11 @@ public class SearchController {
         List<Map<String, Object>> list = new ArrayList<>();
 
         for (SearchHit hit : searchResponse.getHits()) {
+            String maincoinName = configurableApplicationContext.getEnvironment().getProperty("maincoinName");
+            hit.getSourceAsMap().put("maincoinName", maincoinName);
+
             list.add(hit.getSourceAsMap());
+
         }
 
         return ResponseResult.build(200, "query specific block success...", list);
@@ -158,7 +175,7 @@ public class SearchController {
 
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
-        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("transaction")
+        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(TRANSACTION.toString())
                 .setTypes("data")
                 .addSort("blockNumber", SortOrder.DESC)
                 .setSearchType(SearchType.QUERY_THEN_FETCH) //大数量查询
@@ -172,7 +189,11 @@ public class SearchController {
         List<Map<String, Object>> list = new ArrayList<>();
 
         for (SearchHit hit : searchResponse.getHits()) {
+            String maincoinName = configurableApplicationContext.getEnvironment().getProperty("maincoinName");
+            hit.getSourceAsMap().put("maincoinName", maincoinName);
+
             list.add(hit.getSourceAsMap());
+
         }
 
         return ResponseResult.build(200, "query all transaction datas success", list);
@@ -234,7 +255,7 @@ public class SearchController {
             boolQueryBuilder.must(q);
         }
 
-        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("transaction")
+        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(TRANSACTION.toString())
                 .setTypes("data")
                 .setSearchType(SearchType.QUERY_THEN_FETCH)
                 .setQuery(boolQueryBuilder)
@@ -250,10 +271,18 @@ public class SearchController {
             Object valueStr = hit.getSourceAsMap().get("valueStr");
             if (valueStr != null && !"".equals(valueStr)) {
                 hit.getSourceAsMap().put("value", valueStr);   //返回值是否覆盖了value   是
+
+                String maincoinName = configurableApplicationContext.getEnvironment().getProperty("maincoinName");
+                hit.getSourceAsMap().put("maincoinName", maincoinName);
+
                 list.add(hit.getSourceAsMap());
 
             } else {
+                String maincoinName = configurableApplicationContext.getEnvironment().getProperty("maincoinName");
+                hit.getSourceAsMap().put("maincoinName", maincoinName);
+
                 list.add(hit.getSourceAsMap());
+
             }
 
 
@@ -295,7 +324,7 @@ public class SearchController {
 
         boolQueryBuilder.must(QueryBuilders.matchQuery("timestampDay", currentDay));
 
-        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("transaction")
+        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(TRANSACTION.toString())
                 .setTypes("data")
                 .setSearchType(SearchType.QUERY_THEN_FETCH) //大数量查询
                 .setQuery(boolQueryBuilder);
@@ -318,7 +347,7 @@ public class SearchController {
             boolQueryBuilder.must(QueryBuilders.matchQuery("transactionHash", transactionHash));
         }
 
-        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("erc20")
+        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(ERC20.toString())
                 .setTypes("data")
 
                 .setSearchType(SearchType.QUERY_THEN_FETCH) //小数量查询
@@ -329,8 +358,25 @@ public class SearchController {
         List<Map<String, Object>> list = new ArrayList<>();
 
         for (SearchHit hit : searchResponse.getHits()) {
-            hit.getSourceAsMap().put("statusName", coinName.getErc20Name());
-            list.add(hit.getSourceAsMap());
+
+            Object status = hit.getSourceAsMap().get("status");
+            if (status.equals("erc20")) {
+                Object address = hit.getSourceAsMap().get("address");
+                String tokenName = configurableApplicationContext.getEnvironment().getProperty(address.toString());
+                if(StringUtils.isEmpty(tokenName)){
+                    //链上的币名
+                    tokenName = CommonUtils.getTokenName(web3j, address.toString());
+                    hit.getSourceAsMap().put("statusName", tokenName);
+
+                    list.add(hit.getSourceAsMap());
+                }
+                hit.getSourceAsMap().put("statusName", tokenName);
+                list.add(hit.getSourceAsMap());
+
+            } else {
+                list.add(hit.getSourceAsMap());
+            }
+
         }
 
         return ResponseResult.build(200, "query erc20 transfer datas success", list);
@@ -359,7 +405,7 @@ public class SearchController {
             query.must(boolQueryBuilder);
 
 
-            SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("erc20")
+            SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(ERC20.toString())
                     .setTypes("data")
                     .setSearchType(SearchType.QUERY_THEN_FETCH)
                     .addSort("blockNumber", SortOrder.DESC)   //新添加
@@ -371,7 +417,14 @@ public class SearchController {
 
             for (SearchHit hit : searchResponse.getHits()) {
 
-                hit.getSourceAsMap().put("statusName", coinName.getErc20Name());
+                //从配置文件获取ERC20Token名称
+                String tokenName = configurableApplicationContext.getEnvironment().getProperty(contractAddress);
+                if(StringUtils.isEmpty(tokenName)){
+                    //链上的币名
+                    tokenName = CommonUtils.getTokenName(web3j, contractAddress);
+                }
+
+                hit.getSourceAsMap().put("statusName", tokenName);
                 list.add(hit.getSourceAsMap());
             }
 
@@ -394,7 +447,7 @@ public class SearchController {
         if (contractAddress != null) {
             boolQueryBuilder.must(QueryBuilders.matchQuery("to", contractAddress));
 
-            SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("maincoin")
+            SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(MAINCOIN.toString())
                     .setTypes("data")
                     .addSort("blockNumber", SortOrder.DESC)
                     .setSearchType(SearchType.QUERY_THEN_FETCH)
@@ -414,7 +467,7 @@ public class SearchController {
         if (contractAddress != null) {
             boolQueryBuilder.must(QueryBuilders.matchQuery("from", contractAddress));
 
-            SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("maincoin")
+            SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(MAINCOIN.toString())
                     .setTypes("data")
                     .addSort("blockNumber", SortOrder.DESC)
                     .setSearchType(SearchType.QUERY_THEN_FETCH)
@@ -446,7 +499,7 @@ public class SearchController {
             boolQueryBuilder.should(QueryBuilders.matchQuery("to", address));
         }
 
-        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("transaction")
+        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(TRANSACTION.toString())
                 .setTypes("data")
                 .setSearchType(SearchType.QUERY_THEN_FETCH)
                 .setQuery(boolQueryBuilder);
@@ -455,7 +508,10 @@ public class SearchController {
 
         Map<String, Object> map = new HashMap<>();
         map.put("txns", totalHits);
-        map.put("EtherValue", 100);
+        map.put("value", 100);
+
+        String tokenName = configurableApplicationContext.getEnvironment().getProperty("maincoinName");
+        map.put("maincoinName", tokenName);
         //获取余额
         Web3j web3 = Web3j.build(new HttpService("http://n8.ledx.xyz"));
 

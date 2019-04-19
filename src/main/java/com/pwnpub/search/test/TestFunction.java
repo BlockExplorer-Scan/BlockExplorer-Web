@@ -8,6 +8,8 @@ import org.web3j.protocol.http.HttpService;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import static com.pwnpub.search.entity.EsTableEnum.BLOCK;
+
 
 /**
  * @author soobeenwong
@@ -51,6 +53,11 @@ public class TestFunction {
         long time1 = 1547934999;
         String result1 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(time1 * 1000));
         System.out.println(result1);
+
+        System.out.println("====");
+        System.out.println(BLOCK);
+
+
 
 
 

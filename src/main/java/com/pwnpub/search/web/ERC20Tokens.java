@@ -41,6 +41,9 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 
+import static com.pwnpub.search.entity.EsTableEnum.ERC20;
+import static com.pwnpub.search.entity.EsTableEnum.ERC20TOKEN;
+
 /**
  * @author soobeenwong
  * @date 2019-01-26 7:27 PM
@@ -82,7 +85,7 @@ public class ERC20Tokens {
             boolQueryBuilder.must(QueryBuilders.matchQuery("address", contractAddress));
 
 
-            SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("erc20")
+            SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(ERC20.toString())
                     .setTypes("data")
                     .setSearchType(SearchType.QUERY_THEN_FETCH)
                     .addSort("blockNumber", SortOrder.DESC)
@@ -94,7 +97,14 @@ public class ERC20Tokens {
 
             for (SearchHit hit : searchResponse.getHits()) {
 
-                hit.getSourceAsMap().put("statusName", coinName.getErc20Name());
+                //根据address查询Erc20Token Name
+                String tokenName = configurableApplicationContext.getEnvironment().getProperty(contractAddress);
+                if(StringUtils.isEmpty(tokenName)){
+                    //链上的币名
+                    tokenName = CommonUtils.getTokenName(web3j, contractAddress);
+                }
+
+                hit.getSourceAsMap().put("statusName", tokenName);
 
                 if (hit.getSourceAsMap().get("timestamp") != null && CommonUtils.isNumeric0(hit.getSourceAsMap().get("timestamp").toString())) {
                     Long time = Long.parseLong(hit.getSourceAsMap().get("timestamp").toString()) / 1000;
@@ -124,7 +134,7 @@ public class ERC20Tokens {
             boolQueryBuilder.must(QueryBuilders.matchQuery("address", contractAddress));
 
 
-            SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("erc20")
+            SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(ERC20.toString())
                     .setTypes("data")
                     .setSearchType(SearchType.QUERY_THEN_FETCH)
                     .addSort("blockNumber", SortOrder.DESC)
@@ -254,7 +264,7 @@ public class ERC20Tokens {
 
         boolQueryBuilder.must(QueryBuilders.matchQuery("status", coinName.getErc20()));
 
-        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("erc20")
+        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(ERC20.toString())
                 .setTypes("data")
                 .setSearchType(SearchType.QUERY_THEN_FETCH)
                 .setQuery(boolQueryBuilder)
@@ -270,7 +280,7 @@ public class ERC20Tokens {
         return ResponseResult.build(200, "query Holders Counts success", size);
     }
 
-    //遍历Holders
+    //遍历Holders   //出现统计问题
     @PostMapping("/queryERC20Holders")
     public ResponseResult queryERC20Holders(
             @RequestParam(name = "contractAddress") String contractAddress,
@@ -362,7 +372,7 @@ public class ERC20Tokens {
 
         boolQueryBuilder.must(QueryBuilders.matchQuery("erc20name", contractAddress));
 
-        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("erc20token")
+        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(ERC20TOKEN.toString())
                 .setTypes("data")
                 .setSearchType(SearchType.QUERY_THEN_FETCH)
                 .addSort("quantity", SortOrder.DESC)

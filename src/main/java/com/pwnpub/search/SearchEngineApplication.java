@@ -8,7 +8,10 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 @SpringBootApplication
-@ComponentScan(basePackages= {"com.pwnpub.search.web", "com.pwnpub.search.app", "com.pwnpub.search.config"})
+@ComponentScan(basePackages= {"com.pwnpub.search.web",
+        "com.pwnpub.search.app",
+        "com.pwnpub.search.config",
+        "com.pwnpub.search.test"})
 @EnableAsync
 public class SearchEngineApplication extends SpringBootServletInitializer {
 

@@ -17,6 +17,10 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 
+import static com.pwnpub.search.entity.EsTableEnum.BLOCK;
+import static com.pwnpub.search.entity.EsTableEnum.ERC20;
+import static com.pwnpub.search.entity.EsTableEnum.MAINCOIN;
+
 /**
  * @author soobeenwong
  * @date 2019-01-05 2:16 PM
@@ -61,7 +65,7 @@ public class AppController {
                 boolQueryBuilder.should(QueryBuilders.matchQuery("to", address));
 
 
-                SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("erc20")
+                SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(ERC20.toString())
                         .setTypes("data")
                         .addSort("blockNumber", SortOrder.DESC)
                         .setSearchType(SearchType.QUERY_THEN_FETCH)
@@ -80,7 +84,7 @@ public class AppController {
 
                     boolQueryBuilder1.must(QueryBuilders.matchQuery("blockNumber", blockNumber));
 
-                    SearchRequestBuilder searchRequestBuilder1 = this.client.prepareSearch("erc20")
+                    SearchRequestBuilder searchRequestBuilder1 = this.client.prepareSearch(ERC20.toString())
                             .setTypes("data")
                             .addSort("blockNumber", SortOrder.DESC)
                             .setSearchType(SearchType.QUERY_THEN_FETCH)
@@ -143,7 +147,7 @@ public class AppController {
                 boolQueryBuilder.should(QueryBuilders.matchQuery("to", address));
 
 
-                SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("erc20")
+                SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(ERC20.toString())
                         .setTypes("data")
                         .addSort("blockNumber", SortOrder.DESC)
                         .setSearchType(SearchType.QUERY_THEN_FETCH)
@@ -201,7 +205,7 @@ public class AppController {
     public ResponseResult queryBlock() {
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
-        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("block")
+        SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(BLOCK.toString())
                 .setTypes("data")
                 .addSort("number", SortOrder.DESC)
                 .setSearchType(SearchType.QUERY_THEN_FETCH) //小数量查询
@@ -238,7 +242,7 @@ public class AppController {
                 boolQueryBuilder.should(QueryBuilders.matchQuery("to", address));
 
 
-                SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("erc20")
+                SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(ERC20.toString())
                         .setTypes("data")
                         .addSort("blockNumber", SortOrder.DESC)
                         .setSearchType(SearchType.QUERY_THEN_FETCH)
@@ -267,7 +271,7 @@ public class AppController {
                     query.must(q);
 
 
-                    SearchRequestBuilder searchRequestBuilder1 = this.client.prepareSearch("erc20")
+                    SearchRequestBuilder searchRequestBuilder1 = this.client.prepareSearch(ERC20.toString())
                             .setTypes("data")
                             .addSort("blockNumber", SortOrder.DESC)
                             .setSearchType(SearchType.QUERY_THEN_FETCH)
@@ -306,7 +310,7 @@ public class AppController {
                     query2.must(q);
 
 
-                    SearchRequestBuilder searchRequestBuilder2 = this.client.prepareSearch("maincoin")
+                    SearchRequestBuilder searchRequestBuilder2 = this.client.prepareSearch(MAINCOIN.toString())
                             .setTypes("data")
                             .addSort("blockNumber", SortOrder.DESC)
                             .setSearchType(SearchType.QUERY_THEN_FETCH)
@@ -335,7 +339,7 @@ public class AppController {
 
                     BoolQueryBuilder boolQueryBuilder3 = QueryBuilders.boolQuery();
                     boolQueryBuilder3.must(QueryBuilders.matchQuery("number", blockNumber));
-                    SearchRequestBuilder searchRequestBuilder3 = this.client.prepareSearch("block")
+                    SearchRequestBuilder searchRequestBuilder3 = this.client.prepareSearch(BLOCK.toString())
                             .setTypes("data")
                             .setSearchType(SearchType.QUERY_THEN_FETCH)
                             .setQuery(boolQueryBuilder3);
@@ -387,7 +391,7 @@ public class AppController {
             for (String address : addresses) {
 
                 //查询最近20个区块
-                SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch("block")
+                SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(BLOCK.toString())
                         .setTypes("data")
                         .addSort("number", SortOrder.DESC)
                         .setSearchType(SearchType.QUERY_THEN_FETCH)
@@ -414,7 +418,7 @@ public class AppController {
 
                     boolQueryBuilder.must(query);
 
-                    SearchRequestBuilder searchRequestBuilder2 = this.client.prepareSearch("erc20")
+                    SearchRequestBuilder searchRequestBuilder2 = this.client.prepareSearch(ERC20.toString())
                             .setTypes("data")
                             .addSort("blockNumber", SortOrder.DESC)
                             .setSearchType(SearchType.QUERY_THEN_FETCH)
@@ -455,7 +459,7 @@ public class AppController {
 
                     boolQueryBuilder2.must(query2);
 
-                    SearchRequestBuilder searchRequestBuilder3 = this.client.prepareSearch("maincoin")
+                    SearchRequestBuilder searchRequestBuilder3 = this.client.prepareSearch(MAINCOIN.toString())
                             .setTypes("data")
                             .addSort("blockNumber", SortOrder.DESC)
                             .setSearchType(SearchType.QUERY_THEN_FETCH)
