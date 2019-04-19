@@ -15,6 +15,7 @@ import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.aggregations.metrics.cardinality.CardinalityAggregationBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
@@ -415,8 +416,9 @@ public class ERC20Tokens {
             boolQueryBuilder.must(new TermQueryBuilder("address",contractAddress));
             //聚合处理
             SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-            TermsAggregationBuilder termsAggregationBuilder = AggregationBuilders.terms("group_to_count").field("to");
-            sourceBuilder.aggregation(termsAggregationBuilder);
+            CardinalityAggregationBuilder cardinalityAggregationBuilder =
+                    AggregationBuilders.cardinality("to_count").field("to").precisionThreshold(4000);
+            sourceBuilder.aggregation(cardinalityAggregationBuilder);
             sourceBuilder.query(boolQueryBuilder);
 
             //查询索引对象
@@ -425,7 +427,7 @@ public class ERC20Tokens {
             searchRequest.source(sourceBuilder);
             SearchResponse response = client.search(searchRequest).get();
 
-            Terms terms = response.getAggregations().get("group_to_count");
+            Terms terms = response.getAggregations().get("to_count");
 
             logger.info("账户地址数量 -- {}",terms.getBuckets().size());
 
