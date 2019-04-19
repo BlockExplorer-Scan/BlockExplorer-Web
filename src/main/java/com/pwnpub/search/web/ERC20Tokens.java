@@ -201,7 +201,7 @@ public class ERC20Tokens {
         sourceBuilderToken.aggregation(termsAggregationBuilderToken);
         sourceBuilderToken.query(boolQueryBuilderToken);
         //查询索引对象
-        SearchRequest searchRequestToken = new SearchRequest("erc20");
+        SearchRequest searchRequestToken = new SearchRequest(ERC20.toString());
         searchRequestToken.types("data");
         searchRequestToken.source(sourceBuilderToken);
         SearchResponse responseToken = null;
@@ -420,7 +420,7 @@ public class ERC20Tokens {
             sourceBuilder.query(boolQueryBuilder);
 
             //查询索引对象
-            SearchRequest searchRequest = new SearchRequest("erc20");
+            SearchRequest searchRequest = new SearchRequest(ERC20.toString());
             searchRequest.types("data");
             searchRequest.source(sourceBuilder);
             SearchResponse response = client.search(searchRequest).get();
