@@ -86,7 +86,7 @@ public class SearchController {
     @GetMapping("/get/allblock/data")
     public ResponseEntity get(@RequestParam(name = "id", defaultValue = "") String id) {
 
-        GetResponse result = this.client.prepareGet("block", "data", id).get();
+        GetResponse result = this.client.prepareGet(BLOCK.toString(), "data", id).get();
 
         if (!result.isExists()) {
 

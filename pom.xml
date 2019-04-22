@@ -54,12 +54,29 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+			<exclusions>
+				<exclusion>
+					<artifactId>spring-boot-autoconfigure</artifactId>
+					<groupId>org.springframework.boot</groupId>
+				</exclusion>
+
+			</exclusions>
 		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<artifactId>spring-boot-autoconfigure</artifactId>
+					<groupId>org.springframework.boot</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>asm</artifactId>
+					<groupId>org.ow2.asm</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<!-- 引入log4j2 -->
@@ -109,6 +126,16 @@
 			<groupId>org.web3j</groupId>
 			<artifactId>core</artifactId>
 			<version>4.1.0</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>jnr-constants</artifactId>
+					<groupId>com.github.jnr</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>jnr-ffi</artifactId>
+					<groupId>com.github.jnr</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<dependency>
