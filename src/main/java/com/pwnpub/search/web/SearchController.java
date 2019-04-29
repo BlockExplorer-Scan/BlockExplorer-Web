@@ -335,7 +335,7 @@ public class SearchController {
         return currentCounts;
     }
 
-    //analyze erc20 event
+    //analyze erc20 event   //存在重复
     @GetMapping("/queryERC20ByTransaction")
     public ResponseResult queryERC20ByTransaction(
             @RequestParam(name = "transactionHash", required = true) String transactionHash
@@ -369,10 +369,12 @@ public class SearchController {
                     hit.getSourceAsMap().put("statusName", tokenName);
 
                     list.add(hit.getSourceAsMap());
+                } else {
+                    hit.getSourceAsMap().put("statusName", tokenName);
+                    list.add(hit.getSourceAsMap());
                 }
-                hit.getSourceAsMap().put("statusName", tokenName);
-                list.add(hit.getSourceAsMap());
 
+            //status：other token
             } else {
                 list.add(hit.getSourceAsMap());
             }
@@ -391,6 +393,8 @@ public class SearchController {
             @RequestParam(name = "pageNum", required = false, defaultValue = "25") Integer pageNum
 
     ) {
+
+        logger.info("Get into queryERC20ByContractAddress method");
         List<Map<String, Object>> list = new ArrayList<>();
 
         if (contractAddress != null) {
@@ -398,18 +402,19 @@ public class SearchController {
             //boolQueryBuilder.must(QueryBuilders.matchQuery("status", "erc20"));
 
             BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
-            BoolQueryBuilder query = QueryBuilders.boolQuery();
 
-            boolQueryBuilder.should(QueryBuilders.matchQuery("from", contractAddress));
-            boolQueryBuilder.should(QueryBuilders.matchQuery("to", contractAddress));
-            query.must(boolQueryBuilder);
+            //BoolQueryBuilder query = QueryBuilders.boolQuery();
+
+            boolQueryBuilder.should(QueryBuilders.matchQuery("from", contractAddress))
+                            .should(QueryBuilders.matchQuery("to", contractAddress));
+            //query.must(boolQueryBuilder);
 
 
             SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(ERC20.toString())
                     .setTypes("data")
                     .setSearchType(SearchType.QUERY_THEN_FETCH)
                     .addSort("blockNumber", SortOrder.DESC)   //新添加
-                    .setQuery(query)
+                    .setQuery(boolQueryBuilder)
                     .setFrom(pageStart)
                     .setSize(pageNum);
 
@@ -418,13 +423,27 @@ public class SearchController {
             for (SearchHit hit : searchResponse.getHits()) {
 
                 //从配置文件获取ERC20Token名称
-                String tokenName = configurableApplicationContext.getEnvironment().getProperty(contractAddress);
+                String tokenName = null;
+                tokenName = configurableApplicationContext.getEnvironment().getProperty(contractAddress);
+                logger.info("从配置文件中读取到的币名是" + tokenName);
                 if(StringUtils.isEmpty(tokenName)){
                     //链上的币名
-                    tokenName = CommonUtils.getTokenName(web3j, contractAddress);
+                    try {
+                        logger.info("通过请求web3j获取币名...");
+                        tokenName = CommonUtils.getTokenName(web3j, contractAddress);
+                        logger.info("请求web3j获取到的币名是：" + tokenName);
+                        hit.getSourceAsMap().put("statusName", tokenName);
+
+                    } catch (Exception e) {
+                        hit.getSourceAsMap().put("statusName", tokenName);
+                        e.printStackTrace();
+                        logger.info("通过请求web3j获取币名失败...");
+                    }
+                } else {
+                    hit.getSourceAsMap().put("statusName", tokenName); //从配置文件中读取币名
                 }
 
-                hit.getSourceAsMap().put("statusName", tokenName);
+
                 list.add(hit.getSourceAsMap());
             }
 
