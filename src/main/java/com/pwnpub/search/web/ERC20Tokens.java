@@ -3,7 +3,6 @@ package com.pwnpub.search.web;
 import com.pwnpub.search.config.CoinName;
 import com.pwnpub.search.utils.CommonUtils;
 import com.pwnpub.search.utils.ResponseResult;
-import org.elasticsearch.action.search.SearchRequest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.search.SearchRequest;
@@ -15,40 +14,24 @@ import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.aggregations.Aggregation;
-import org.elasticsearch.search.aggregations.Aggregations;
-import org.elasticsearch.search.aggregations.InternalAggregation;
-import org.elasticsearch.search.aggregations.metrics.cardinality.CardinalityAggregationBuilder;
-import org.elasticsearch.search.aggregations.metrics.cardinality.InternalCardinality;
-import org.elasticsearch.search.aggregations.metrics.sum.Sum;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.cardinality.CardinalityAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.cardinality.InternalCardinality;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.DigestUtils;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.beans.factory.config.PropertiesFactoryBean;
-import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.web3j.protocol.Web3j;
-import org.web3j.protocol.http.HttpService;
 
-import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 
-import static com.pwnpub.search.entity.EsTableEnum.ERC20;
-import static com.pwnpub.search.entity.EsTableEnum.ERC20TOKEN;
+import static com.pwnpub.search.entity.EsTableEnum.*;
 
 /**
  * @author soobeenwong
@@ -151,11 +134,10 @@ public class ERC20Tokens {
             long totalHits = searchResponse.getHits().getTotalHits();
             map.put("Transfers", totalHits);
 
-            Web3j web3 = null;
+
             try {
-                web3 = Web3j.build(new HttpService("http://n8.ledx.xyz"));
-                BigInteger tokenTotalSupply = CommonUtils.getTokenTotalSupply(web3, contractAddress);
-                int decimals = CommonUtils.getTokenDecimals(web3, contractAddress);
+                BigInteger tokenTotalSupply = CommonUtils.getTokenTotalSupply(web3j, contractAddress);
+                int decimals = CommonUtils.getTokenDecimals(web3j, contractAddress);
                 map.put("TokenTotalSupply", tokenTotalSupply);
                 map.put("decimals", decimals);
 
@@ -407,14 +389,20 @@ public class ERC20Tokens {
         return ResponseResult.build(300, "error", null);
     }
 
-    //hj--统计Holder数量
+    /**
+     *
+     * hj--统计Holder数量
+     * @param contractAddress
+     * @return
+     */
     @GetMapping("/queryERC20HoldersCounts")
     public ResponseResult queryERC20HoldersCounts(
             //0x70f4f4731f6473abc60a31dcc1e9b7b702e8b9c3
             @RequestParam(name = "contractAddress", required = true) String contractAddress
     ) {
 
-        try {
+        //hj：通过全部ERC20交易去统计holders实时数量
+        /* try {
 
             BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder();
             boolQueryBuilder.must(new TermQueryBuilder("status","erc20"));
@@ -436,16 +424,33 @@ public class ERC20Tokens {
 
             logger.info("账户地址数量 -- {}",internalCardinality.getValue());
 
-            return ResponseResult.build(200, "query Holders success", internalCardinality.getValue());
+            return ResponseResult.build(200, "query HoldersCounts success", internalCardinality.getValue());
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return null;
+        return ResponseResult.build(401, "query HoldersCounts failed"); */
+
+        //soob：通过定时任务Job统计数据去获取holders数量
+        try {
+
+            BoolQueryBuilder query = QueryBuilders.boolQuery();
+            query.must(QueryBuilders.matchQuery("erc20name", contractAddress));
+
+            long totalHits = this.client.prepareSearch(ERC20TOKEN.toString())
+                    .setTypes("data")
+                    .setQuery(query)
+                    .get()
+                    .getHits()
+                    .getTotalHits();
+            return ResponseResult.build(200, "query HoldersCounts success",totalHits);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return ResponseResult.build(201,"query HoldersCounts failed");
+
     }
-
-
-
-
 
 }

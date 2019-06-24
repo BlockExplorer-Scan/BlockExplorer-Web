@@ -1,30 +1,20 @@
 package com.pwnpub.search.web;
 
 import com.pwnpub.search.config.CoinName;
-import com.pwnpub.search.pojo.BlockEntityAll;
-import com.pwnpub.search.pojo.TransactionEntityAll;
 import com.pwnpub.search.utils.CommonUtils;
 import com.pwnpub.search.utils.ResponseResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
-import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.aggregations.AggregationBuilders;
-import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,12 +23,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.EthGetBalance;
 import org.web3j.protocol.core.methods.response.Web3ClientVersion;
-import org.web3j.protocol.http.HttpService;
 import org.web3j.utils.Convert;
 
 import javax.servlet.http.HttpServletRequest;
@@ -48,7 +40,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 
 import static com.pwnpub.search.entity.EsTableEnum.*;
 
@@ -199,6 +190,19 @@ public class SearchController {
         return ResponseResult.build(200, "query all transaction datas success", list);
     }
 
+    /**
+     *
+     * @param hash
+     * @param blockNumber
+     * @param miner
+     * @param status
+     * @param to
+     * @param from
+     * @param pageStart
+     * @param pageNum
+     * @param address type=from or to, default address
+     * @return
+     */
     //分页 0-25    添加统计数量
     @GetMapping("/queryTransactionByValue")
     public ResponseResult queryTransactionByValue(
@@ -209,7 +213,8 @@ public class SearchController {
             @RequestParam(name = "to", required = false) String to,
             @RequestParam(name = "from", required = false) String from,
             @RequestParam(name = "pageStart", required = false, defaultValue = "0") Integer pageStart,
-            @RequestParam(name = "pageNum", required = false, defaultValue = "25") Integer pageNum
+            @RequestParam(name = "pageNum", required = false, defaultValue = "25") Integer pageNum,
+            @RequestParam(name = "address", required = false) String address
 
 
     ) {
@@ -255,6 +260,15 @@ public class SearchController {
             boolQueryBuilder.must(q);
         }
 
+        if (address != null) {
+            logger.info("参数：address （from or to）");
+            BoolQueryBuilder q = QueryBuilders.boolQuery();
+            q.should(QueryBuilders.matchQuery("from", address));
+            q.should(QueryBuilders.matchQuery("to", address));
+            boolQueryBuilder.must(q);
+
+        }
+
         SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(TRANSACTION.toString())
                 .setTypes("data")
                 .setSearchType(SearchType.QUERY_THEN_FETCH)
@@ -264,6 +278,7 @@ public class SearchController {
                 .setSize(pageNum);
 
         SearchResponse searchResponse = searchRequestBuilder.get();
+        long totalHits = searchResponse.getHits().getTotalHits();
 
         for (SearchHit hit : searchResponse.getHits()) {
 
@@ -284,8 +299,6 @@ public class SearchController {
                 list.add(hit.getSourceAsMap());
 
             }
-
-
         }
 
         return ResponseResult.build(200, "query specific transaction success...", list);
@@ -396,18 +409,21 @@ public class SearchController {
 
         logger.info("Get into queryERC20ByContractAddress method");
         List<Map<String, Object>> list = new ArrayList<>();
+        List<Map<String, Object>> list2 = new ArrayList<>();
+        List<Object> list3 = new ArrayList<>();
 
         if (contractAddress != null) {
 
-            //boolQueryBuilder.must(QueryBuilders.matchQuery("status", "erc20"));
-
             BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
-            //BoolQueryBuilder query = QueryBuilders.boolQuery();
+            boolQueryBuilder.must(QueryBuilders.matchQuery("status", "erc20")); //???
 
-            boolQueryBuilder.should(QueryBuilders.matchQuery("from", contractAddress))
-                            .should(QueryBuilders.matchQuery("to", contractAddress));
-            //query.must(boolQueryBuilder);
+            BoolQueryBuilder query = QueryBuilders.boolQuery();
+
+            query.should(QueryBuilders.matchQuery("from", contractAddress));
+            query.should(QueryBuilders.matchQuery("to", contractAddress));
+
+            boolQueryBuilder.must(query);
 
 
             SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(ERC20.toString())
@@ -419,18 +435,21 @@ public class SearchController {
                     .setSize(pageNum);
 
             SearchResponse searchResponse = searchRequestBuilder.get();
+            long totalHits = searchResponse.getHits().getTotalHits();
 
             for (SearchHit hit : searchResponse.getHits()) {
 
+                Object address = hit.getSourceAsMap().get("address");
+
                 //从配置文件获取ERC20Token名称
                 String tokenName = null;
-                tokenName = configurableApplicationContext.getEnvironment().getProperty(contractAddress);
+                tokenName = configurableApplicationContext.getEnvironment().getProperty(address.toString());
                 logger.info("从配置文件中读取到的币名是" + tokenName);
                 if(StringUtils.isEmpty(tokenName)){
                     //链上的币名
                     try {
                         logger.info("通过请求web3j获取币名...");
-                        tokenName = CommonUtils.getTokenName(web3j, contractAddress);
+                        tokenName = CommonUtils.getTokenName(web3j, address.toString());
                         logger.info("请求web3j获取到的币名是：" + tokenName);
                         hit.getSourceAsMap().put("statusName", tokenName);
 
@@ -443,12 +462,18 @@ public class SearchController {
                     hit.getSourceAsMap().put("statusName", tokenName); //从配置文件中读取币名
                 }
 
-
                 list.add(hit.getSourceAsMap());
             }
 
+            Map<String, Object> map = new HashMap<>();
+            map.put("total", totalHits);
+            list2.add(map);
+
         }
-        return ResponseResult.build(200, "query erc20 transfer datas success", list);
+
+        list3.add(list);
+        list3.add(list2);
+        return ResponseResult.build(200, "query erc20 transfer datas success", list3);
     }
 
     //主币内部转账记录
@@ -460,11 +485,18 @@ public class SearchController {
 
     ) {
         List<Map<String, Object>> list = new ArrayList<>();
+        List<Map<String, Object>> list2= new ArrayList<>();
+        List<Object> list3= new ArrayList<>();
 
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
         if (contractAddress != null) {
-            boolQueryBuilder.must(QueryBuilders.matchQuery("to", contractAddress));
+
+            BoolQueryBuilder q = QueryBuilders.boolQuery();
+            q.should(QueryBuilders.matchQuery("from", contractAddress));
+            q.should(QueryBuilders.matchQuery("to", contractAddress));
+
+            boolQueryBuilder.must(q);
 
             SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(MAINCOIN.toString())
                     .setTypes("data")
@@ -476,14 +508,21 @@ public class SearchController {
 
 
             SearchResponse searchResponse = searchRequestBuilder.get();
+            long totalHits = searchResponse.getHits().getTotalHits();
 
             for (SearchHit hit : searchResponse.getHits()) {
                 list.add(hit.getSourceAsMap());
             }
+            Map<String, Object> map = new HashMap<>();
+            map.put("total", totalHits);
+            list2.add(map);
 
         }
+        list3.add(list);
+        list3.add(list2);
 
-        if (contractAddress != null) {
+
+        /* if (contractAddress != null) {
             boolQueryBuilder.must(QueryBuilders.matchQuery("from", contractAddress));
 
             SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(MAINCOIN.toString())
@@ -498,9 +537,9 @@ public class SearchController {
             for (SearchHit hit : searchResponse.getHits()) {
                 list.add(hit.getSourceAsMap());
             }
-        }
+        } */
 
-        return ResponseResult.build(200, "query maincoin transfer datas success", list);
+        return ResponseResult.build(200, "query maincoin transfer datas success", list3);
     }
 
     //统计交易数量
@@ -532,11 +571,11 @@ public class SearchController {
         String tokenName = configurableApplicationContext.getEnvironment().getProperty("maincoinName");
         map.put("maincoinName", tokenName);
         //获取余额
-        Web3j web3 = Web3j.build(new HttpService("http://n8.ledx.xyz"));
+        //Web3j web3 = Web3j.build(new HttpService("http://n8.ledx.xyz"));
 
         Web3ClientVersion web3ClientVersion;
         try {
-            web3ClientVersion = web3.web3ClientVersion().send();
+            web3ClientVersion = web3j.web3ClientVersion().send();
             String clientVersion = web3ClientVersion.getWeb3ClientVersion();
             logger.info("私链的版本是：" + clientVersion);
         } catch (IOException e) {
@@ -545,7 +584,7 @@ public class SearchController {
         }
         //获取余额
         try {
-            EthGetBalance ethGetBalance = web3.ethGetBalance(address, DefaultBlockParameterName.LATEST).send();
+            EthGetBalance ethGetBalance = web3j.ethGetBalance(address, DefaultBlockParameterName.LATEST).send();
             if (ethGetBalance != null) {
                 // 打印账户余额
                 System.out.println(ethGetBalance.getBalance());
@@ -575,7 +614,7 @@ public class SearchController {
                 if (lenth <= 12) { //区块高度
 
                     map.put("type", "blockNumber");
-                    Web3j web3j = Web3j.build(new HttpService("http://n8.ledx.xyz"));
+                    //Web3j web3j = Web3j.build(new HttpService("http://n8.ledx.xyz"));
 
                     BigInteger bigInteger = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false)
                             .send().getBlock().getNumber();
@@ -643,6 +682,33 @@ public class SearchController {
         }
         return ResponseResult.build(300, "error", null);
     }
+
+
+    @GetMapping("/getAllTxCounts")
+    public ResponseResult getAllTxCounts(){
+
+        long totalHits = 0;
+        try {
+            totalHits = this.client.prepareSearch(TRANSACTION.toString())
+                    .setTypes("data")
+                    .setSearchType(SearchType.QUERY_THEN_FETCH)
+                    .get()
+                    .getHits()
+                    .getTotalHits();
+
+            return ResponseResult.build(200, "Get AllTxTounts Success.", totalHits);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseResult.build(300, "Get AllTxCounts Failed.");
+        }
+
+
+
+
+    }
+
+
 
 
 }
