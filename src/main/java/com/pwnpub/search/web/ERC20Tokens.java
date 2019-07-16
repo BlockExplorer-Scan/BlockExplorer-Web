@@ -402,7 +402,7 @@ public class ERC20Tokens {
     ) {
 
         //hj：通过全部ERC20交易去统计holders实时数量
-        /* try {
+        try {
 
             BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder();
             boolQueryBuilder.must(new TermQueryBuilder("status","erc20"));
@@ -429,10 +429,10 @@ public class ERC20Tokens {
             e.printStackTrace();
         }
 
-        return ResponseResult.build(401, "query HoldersCounts failed"); */
+        return ResponseResult.build(201, "query HoldersCounts failed");
 
         //soob：通过定时任务Job统计数据去获取holders数量
-        try {
+        /*try {
 
             BoolQueryBuilder query = QueryBuilders.boolQuery();
             query.must(QueryBuilders.matchQuery("erc20name", contractAddress));
@@ -449,7 +449,7 @@ public class ERC20Tokens {
             e.printStackTrace();
         }
 
-        return ResponseResult.build(201,"query HoldersCounts failed");
+        return ResponseResult.build(201,"query HoldersCounts failed");*/
 
     }
 
