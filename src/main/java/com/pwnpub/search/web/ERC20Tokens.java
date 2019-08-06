@@ -58,7 +58,7 @@ public class ERC20Tokens {
 
     //Transfers 列表
     @GetMapping("/queryERC20TokenTransfers")
-    public ResponseResult queryERC20ByContractAddress(
+    public ResponseResult queryERC20TokenTransfers(
             @RequestParam(name = "contractAddress", required = true) String contractAddress,
             @RequestParam(name = "pageStart", required = false, defaultValue = "0") Integer pageStart,
             @RequestParam(name = "pageNum", required = false, defaultValue = "20") Integer pageNum
@@ -107,7 +107,11 @@ public class ERC20Tokens {
         return ResponseResult.build(200, "query erc20 transfer datas success", list);
     }
 
-    //Total Supply 代币发行总量   TransfersCount 转账总数
+    /**
+     * Total Supply 代币发行总量   TransfersCount 转账总数
+     * @param contractAddress
+     * @return
+     */
     @GetMapping("/queryERC20TokenCounts")
     public ResponseResult queryERC20TokenCounts(
             @RequestParam(name = "contractAddress", required = true) String contractAddress
@@ -142,6 +146,11 @@ public class ERC20Tokens {
                 map.put("decimals", decimals);
 
                 String tokenName = configurableApplicationContext.getEnvironment().getProperty(contractAddress);
+                if (StringUtils.isEmpty(tokenName)) {
+                    //链上的币名
+                    tokenName = CommonUtils.getTokenName(web3j, contractAddress);
+                }
+
                 map.put("statusName", tokenName);
 
             } catch (Exception e) {
@@ -153,7 +162,10 @@ public class ERC20Tokens {
         return ResponseResult.build(200, "query erc20 transfer datas success", map);
     }
 
-    //获取所有erc20的合约地址
+    /**
+     * 获取所有erc20的合约地址
+     * @return
+     */
     @GetMapping("/queryERC20Contracts")
     public ResponseResult queryERC20TokenContract(
     ) {
@@ -452,6 +464,95 @@ public class ERC20Tokens {
 
         return ResponseResult.build(201,"query HoldersCounts failed");*/
 
+    }
+
+
+    /**
+     *
+     * @param contractAddress
+     * @param pageStart
+     * @param pageNum
+     * @return
+     * @time 2019-8-6
+     */
+    @GetMapping("/queryERC20ByTokenAddress")
+    public ResponseResult queryERC20ByTokenAddress(
+            @RequestParam(name = "contractAddress", required = true) String contractAddress,
+            @RequestParam(name = "tokenAddress", required = true) String tokenAddress,
+            @RequestParam(name = "pageStart", required = false, defaultValue = "0") Integer pageStart,
+            @RequestParam(name = "pageNum", required = false, defaultValue = "25") Integer pageNum
+
+    ) {
+
+        logger.info("Get into queryERC20ByTokenAddress method");
+        List<Map<String, Object>> list = new ArrayList<>();
+        List<Map<String, Object>> list2 = new ArrayList<>();
+        List<Object> list3 = new ArrayList<>();
+
+        if (contractAddress != null) {
+
+            BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+
+            boolQueryBuilder.must(QueryBuilders.matchQuery("status", "erc20")); //???
+            boolQueryBuilder.must(QueryBuilders.matchQuery("address", tokenAddress)); //同时匹配代币
+
+            BoolQueryBuilder query = QueryBuilders.boolQuery();
+
+            query.should(QueryBuilders.matchQuery("from", contractAddress));
+            query.should(QueryBuilders.matchQuery("to", contractAddress));
+
+            boolQueryBuilder.must(query);
+
+
+
+            SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(ERC20.toString())
+                    .setTypes("data")
+                    .setSearchType(SearchType.QUERY_THEN_FETCH)
+                    .addSort("blockNumber", SortOrder.DESC)   //新添加
+                    .setQuery(boolQueryBuilder)
+                    .setFrom(pageStart)
+                    .setSize(pageNum);
+
+            SearchResponse searchResponse = searchRequestBuilder.get();
+            long totalHits = searchResponse.getHits().getTotalHits();
+
+            for (SearchHit hit : searchResponse.getHits()) {
+
+                Object address = hit.getSourceAsMap().get("address");
+
+                //从配置文件获取ERC20Token名称
+                String tokenName = null;
+                tokenName = configurableApplicationContext.getEnvironment().getProperty(address.toString());
+                logger.info("从配置文件中读取到的币名是" + tokenName);
+                if(StringUtils.isEmpty(tokenName)){
+                    //链上的币名
+                    try {
+                        logger.info("通过请求web3j获取币名...");
+                        tokenName = CommonUtils.getTokenName(web3j, address.toString());
+                        logger.info("请求web3j获取到的币名是：" + tokenName);
+                        hit.getSourceAsMap().put("statusName", tokenName);
+
+                    } catch (Exception e) {
+                        hit.getSourceAsMap().put("statusName", tokenName);
+                        e.printStackTrace();
+                        logger.info("通过请求web3j获取币名失败...");
+                    }
+                } else {
+                    hit.getSourceAsMap().put("statusName", tokenName); //从配置文件中读取币名
+                }
+
+                list.add(hit.getSourceAsMap());
+            }
+
+            Map<String, Object> map = new HashMap<>();
+            map.put("total", totalHits);
+            list2.add(map);
+
+        }
+
+        list3.add(list);
+        list3.add(list2);
+        return ResponseResult.build(200, "query erc20 transfer datas success", list3);
     }
 
 }

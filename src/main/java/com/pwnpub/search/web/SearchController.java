@@ -304,6 +304,41 @@ public class SearchController {
         return ResponseResult.build(200, "query specific transaction success...", list);
     }
 
+    /**
+     * 通过交易哈希地址，查询主币内部转账消息（详细交易页面）
+     * @param hash
+     * @return
+     */
+    @GetMapping("/queryTransactionByContract")
+    public ResponseResult queryTransactionByContract(@RequestParam(name = "hash", required = true) String hash){
+
+        List<Map<String, Object>> list = new ArrayList();
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+
+        if (hash != null) {
+            logger.info("参数：hash");
+            boolQueryBuilder.must(QueryBuilders.matchQuery("transactionHash", hash));
+        }
+        try {
+            SearchRequestBuilder searchRequestBuilder = this.client.prepareSearch(MAINCOIN.toString())
+                    .setTypes("data")
+                    .setSearchType(SearchType.QUERY_THEN_FETCH)
+                    .setQuery(boolQueryBuilder);
+
+            SearchResponse searchResponse = searchRequestBuilder.get();
+
+            for (SearchHit hit : searchResponse.getHits()) {
+                list.add(hit.getSourceAsMap());
+            }
+
+            return ResponseResult.build(200, "get maincoin transfer success.", list);
+        } catch (Exception e) {
+            logger.info(e.getMessage());
+            return ResponseResult.build(201, "get maincoin transfer failed.");
+        }
+
+    }
+
     @GetMapping("/query/transaction/counts")
     public ResponseResult queryTransactionCounts() {
 
