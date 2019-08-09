@@ -64,7 +64,8 @@ public class TokenController {
         boolQueryBuilderToken.must(new TermQueryBuilder("status", "erc20"));
         //聚合处理
         SearchSourceBuilder sourceBuilderToken = new SearchSourceBuilder();
-        TermsAggregationBuilder termsAggregationBuilderToken = AggregationBuilders.terms("group_token_count").field("address");
+        TermsAggregationBuilder termsAggregationBuilderToken =
+                AggregationBuilders.terms("group_token_count").field("address").size(1000000);
         sourceBuilderToken.aggregation(termsAggregationBuilderToken);
         sourceBuilderToken.query(boolQueryBuilderToken);
         //查询索引对象
