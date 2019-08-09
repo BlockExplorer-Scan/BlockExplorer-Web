@@ -224,7 +224,7 @@ public class ERC20Tokens {
                 //链上的币名
                 tokenName = CommonUtils.getTokenName(web3j, key.toString());
             }
-                map.put(tokenName, key);
+                map.put(key.toString(),tokenName);
 
 //
 //
@@ -252,7 +252,7 @@ public class ERC20Tokens {
 
         }
         list.add(map);
-
+        logger.info("  joon -- list size : {} ",list.size());
         return ResponseResult.build(200, "query Token Tracker success", list);
     }
 

@@ -79,13 +79,14 @@ public class TokenController {
             e.printStackTrace();
         }
         Terms termsToken = responseToken.getAggregations().get("group_token_count");
-        logger.info(" joon -- StorageJob - erc20 代币量 -- {}", termsToken.getBuckets().size());
+        logger.info(" joon -- erc20 代币量 -- {}", termsToken.getBuckets().size());
 
         List<TokenEntity> listToken = new ArrayList<>();
         for (Terms.Bucket token : termsToken.getBuckets()) {
             Object key = token.getKey();
 
             String tokenBalance = CommonUtils.getTokenBalance(web3j, address, key.toString()).toString();
+            logger.info(" joon -- 代币地址:{}  -- 代币账户余额:{}",key.toString(),tokenBalance);
             if (!tokenBalance.equals("0")) {
 
                 String tokenName = configurableApplicationContext.getEnvironment().getProperty(key.toString());
@@ -94,9 +95,10 @@ public class TokenController {
                     tokenName = CommonUtils.getTokenName(web3j, key.toString());
                 }
                 listToken.add(new TokenEntity(tokenName, tokenBalance, key.toString()));
+
             }
         }
-
+        logger.info("  joon -- listToken size : {} ",listToken.size());
         return ResponseResult.build(200, "success", listToken);
     }
 }
