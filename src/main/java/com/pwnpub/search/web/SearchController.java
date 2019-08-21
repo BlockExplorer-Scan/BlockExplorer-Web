@@ -114,6 +114,9 @@ public class SearchController {
             String maincoinName = configurableApplicationContext.getEnvironment().getProperty("maincoinName");
             hit.getSourceAsMap().put("maincoinName", maincoinName);
 
+            String blockReward = configurableApplicationContext.getEnvironment().getProperty("blockReward");
+            hit.getSourceAsMap().put("blockReward", blockReward);
+
             list.add(hit.getSourceAsMap());
         }
 
@@ -149,6 +152,9 @@ public class SearchController {
         for (SearchHit hit : searchResponse.getHits()) {
             String maincoinName = configurableApplicationContext.getEnvironment().getProperty("maincoinName");
             hit.getSourceAsMap().put("maincoinName", maincoinName);
+
+            String blockReward = configurableApplicationContext.getEnvironment().getProperty("blockReward");
+            hit.getSourceAsMap().put("blockReward", blockReward);
 
             list.add(hit.getSourceAsMap());
 
@@ -606,7 +612,6 @@ public class SearchController {
         String tokenName = configurableApplicationContext.getEnvironment().getProperty("maincoinName");
         map.put("maincoinName", tokenName);
         //获取余额
-        //Web3j web3 = Web3j.build(new HttpService("http://n8.ledx.xyz"));
 
         Web3ClientVersion web3ClientVersion;
         try {
@@ -649,7 +654,6 @@ public class SearchController {
                 if (lenth <= 12) { //区块高度
 
                     map.put("type", "blockNumber");
-                    //Web3j web3j = Web3j.build(new HttpService("http://n8.ledx.xyz"));
 
                     BigInteger bigInteger = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false)
                             .send().getBlock().getNumber();

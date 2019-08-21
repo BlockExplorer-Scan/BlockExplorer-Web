@@ -218,13 +218,19 @@ public class ERC20Tokens {
         Map<String, Object> map = new HashMap<>();
         for (Terms.Bucket token : termsToken.getBuckets()) {
             Object key = token.getKey();
-
+            //从配置文件中获取币名
             String tokenName = configurableApplicationContext.getEnvironment().getProperty(key.toString());
+            if ("hide".equals(tokenName)) {
+                continue;
+            }
             if(StringUtils.isEmpty(tokenName)){
                 //链上的币名
                 tokenName = CommonUtils.getTokenName(web3j, key.toString());
+
             }
-                map.put(key.toString(),tokenName);
+
+            map.put(key.toString(),tokenName);
+
 
 //
 //
