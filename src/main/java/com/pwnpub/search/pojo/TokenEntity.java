@@ -10,11 +10,13 @@ public class TokenEntity {
     private String tokenName;
     private String tokenNumber;
     private String tokenAddress;
+    private int decimals;
 
-    public TokenEntity(String tokenName, String tokenNumber, String tokenAddress) {
+    public TokenEntity(String tokenName, String tokenNumber, String tokenAddress,int decimals) {
         this.tokenName = tokenName;
         this.tokenNumber = tokenNumber;
         this.tokenAddress = tokenAddress;
+        this.decimals = decimals;
     }
 
     public String getTokenName() {
@@ -27,5 +29,9 @@ public class TokenEntity {
 
     public String getTokenAddress() {
         return tokenAddress;
+    }
+
+    public int getDecimals() {
+        return decimals;
     }
 }

@@ -94,7 +94,9 @@ public class TokenController {
                     //链上的币名
                     tokenName = CommonUtils.getTokenName(web3j, key.toString());
                 }
-                listToken.add(new TokenEntity(tokenName, tokenBalance, key.toString()));
+                int decimals = CommonUtils.getTokenDecimals(web3j, key.toString());
+
+                listToken.add(new TokenEntity(tokenName, tokenBalance, key.toString(),decimals));
 
             }
         }
