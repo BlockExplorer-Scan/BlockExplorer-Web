@@ -5,6 +5,9 @@ import org.apache.logging.log4j.Logger;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -20,7 +23,7 @@ public class TestFunction {
 
     private static final Logger logger = LogManager.getLogger(TestFunction.class);
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
 
@@ -33,12 +36,12 @@ public class TestFunction {
         String latestTime2 = formatter.format(1547937564);
 
         System.out.println("===================");
-        System.out.println("latestTime2"+latestTime);
+        System.out.println("latestTime2" + latestTime);
         System.out.println("+++++++++++++++++");
 
         System.out.println("current time is: " + currentTime);
 
-        System.out.println("latest time is: "  + latestTime);
+        System.out.println("latest time is: " + latestTime);
 
         System.out.println();
 
@@ -61,8 +64,16 @@ public class TestFunction {
         String data = "0x00000000000000000000000000000000000000000000006cf65a7e9047280000";
 
 
-
-
+        int num = 123;
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream out = new DataOutputStream(baos);
+        out.writeInt(num);
+        byte[] bs = baos.toByteArray();
+        for (byte b : bs) {
+            System.out.print("0x");
+            System.out.print(Integer.toString(b >> 4 & 0xF, 16).toUpperCase());
+            System.out.print(Integer.toString(b & 0xF, 16).toUpperCase());
+        }
 
 
 

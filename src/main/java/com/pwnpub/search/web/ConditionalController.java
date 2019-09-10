@@ -1,21 +1,31 @@
 package com.pwnpub.search.web;
 
+import com.pwnpub.search.utils.CommonUtils;
 import com.pwnpub.search.utils.ResponseResult;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.lucene.analysis.commongrams.CommonGramsQueryFilter;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TermRangeQuery;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.RangeQueryBuilder;
+import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.web3j.protocol.Web3j;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -35,6 +45,14 @@ public class ConditionalController {
 
     @Autowired
     private TransportClient client;
+
+    @Autowired
+    ConfigurableApplicationContext configurableApplicationContext;
+
+    @Autowired
+    Web3j web3j;
+
+    private static final Logger logger = LogManager.getLogger(ConditionalController.class);
 
     @GetMapping("/rangeQueryOuter")
     public ResponseResult rangeQueryOuter(@RequestParam(name = "timeStart", required = false)String timeStart,
@@ -60,9 +78,17 @@ public class ConditionalController {
                 boolQueryBuilder.must(qb1);
             }
 
+            //需要处理
             if (transferStart != null && transferEnd != null) {
-                RangeQueryBuilder qb2 = rangeQuery("value")
-                        .from(transferStart).to(transferEnd);
+
+                //RangeQueryBuilder qb2 = rangeQuery("value").from(transferStart).to(transferEnd);
+                RangeQueryBuilder qb2 = rangeQuery("value").gte(transferStart).lte(transferEnd);
+
+                //TermRangeQuery termRangeQuery =new TermRangeQuery("value",new BytesRef(transferStart), new BytesRef(transferEnd), true, true);
+
+
+
+                //TermRangeQuery termRangeQuery = new TermRangeQuery()
 
                 boolQueryBuilder.must(qb2);
             }
@@ -87,6 +113,9 @@ public class ConditionalController {
             SearchHits hits = response.getHits();
 
             List<Map<String, Object>> list = new ArrayList<>();
+            List<Map<String, Object>> list2= new ArrayList<>();
+            List<Object> list3= new ArrayList<>();
+
             for (SearchHit searchHit : hits.getHits()) {
 
                 list.add(searchHit.getSourceAsMap());
@@ -94,9 +123,12 @@ public class ConditionalController {
 
             Map<String, Object> map = new HashMap<>();
             map.put("total", hits.getTotalHits());
-            list.add(map);
+            list2.add(map);
 
-            return ResponseResult.build(200, "Get Conditional Transaction Success", list);
+            list3.add(list);
+            list3.add(list2);
+
+            return ResponseResult.build(200, "Get Conditional Transaction Success", list3);
 
         }
 
@@ -156,17 +188,23 @@ public class ConditionalController {
             SearchHits hits = response.getHits();
 
             List<Map<String, Object>> list = new ArrayList<>();
+            List<Map<String, Object>> list2= new ArrayList<>();
+            List<Object> list3= new ArrayList<>();
+
             for (SearchHit searchHit : hits.getHits()) {
 
-                searchHit.getSourceAsMap().put("timestamp", Long.valueOf(searchHit.getSourceAsMap().get("timestamp").toString()) / 1000);
+                //searchHit.getSourceAsMap().put("timestamp", Long.valueOf(searchHit.getSourceAsMap().get("timestamp").toString()) / 1000);
 
                 list.add(searchHit.getSourceAsMap());
             }
             Map<String, Object> map = new HashMap<>();
             map.put("total", hits.getTotalHits());
-            list.add(map);
+            list2.add(map);
 
-            return ResponseResult.build(200, "Get Conditional Transaction Success", list);
+            list3.add(list);
+            list3.add(list2);
+
+            return ResponseResult.build(200, "Get Conditional Transaction Success", list3);
 
         }
 
@@ -186,10 +224,12 @@ public class ConditionalController {
                                           @RequestParam(name = "pageStart", required = false, defaultValue = "0") Integer pageStart,
                                           @RequestParam(name = "pageNum", required = false, defaultValue = "20") Integer pageNum) {
 
-        if ((timeStart != null && timeEnd != null) || (transferStart != null && transferEnd != null) || (from != null || to != null)) {
+        if ((timeStart != null && timeEnd != null) || (transferStart != null && transferEnd != null) || (from != null || to != null) || tokenName != null) {
 
 
             BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder();
+
+            boolQueryBuilder.must(QueryBuilders.matchQuery("status", "erc20"));
 
             if (tokenName != null) {
                 boolQueryBuilder.must(QueryBuilders.matchQuery("address", tokenName));
@@ -229,18 +269,47 @@ public class ConditionalController {
             SearchHits hits = response.getHits();
 
             List<Map<String, Object>> list = new ArrayList<>();
+            List<Map<String, Object>> list2= new ArrayList<>();
+            List<Object> list3= new ArrayList<>();
+
             for (SearchHit searchHit : hits.getHits()) {
 
                 //searchHit.getSourceAsMap().put("timestamp", Long.valueOf(searchHit.getSourceAsMap().get("timestamp").toString()) / 1000);
+
+                Object address = searchHit.getSourceAsMap().get("address");
+
+                //从配置文件获取ERC20Token名称
+                String tokenName2 = null;
+                tokenName2 = configurableApplicationContext.getEnvironment().getProperty(address.toString());
+                logger.info("从配置文件中读取到的币名是" + tokenName2);
+                if(StringUtils.isEmpty(tokenName2)){
+                    //链上的币名
+                    try {
+                        logger.info("通过请求web3j获取币名...");
+                        tokenName2 = CommonUtils.getTokenName(web3j, address.toString());
+                        logger.info("请求web3j获取到的币名是：" + tokenName2);
+                        searchHit.getSourceAsMap().put("statusName", tokenName2);
+
+                    } catch (Exception e) {
+                        searchHit.getSourceAsMap().put("statusName", tokenName2);
+                        e.printStackTrace();
+                        logger.info("通过请求web3j获取币名失败...");
+                    }
+                } else {
+                    searchHit.getSourceAsMap().put("statusName", tokenName2); //从配置文件中读取币名
+                }
 
                 list.add(searchHit.getSourceAsMap());
             }
 
             Map<String, Object> map = new HashMap<>();
             map.put("total", hits.getTotalHits());
-            list.add(map);
+            list2.add(map);
 
-            return ResponseResult.build(200, "Get Conditional Transaction Success", list);
+            list3.add(list);
+            list3.add(list2);
+
+            return ResponseResult.build(200, "Get Conditional Transaction Success", list3);
 
         }
 
