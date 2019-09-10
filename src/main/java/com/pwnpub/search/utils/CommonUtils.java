@@ -87,7 +87,9 @@ public class CommonUtils {
             Transaction transaction = Transaction.createEthCallTransaction(contractAddress, contractAddress, data);
             EthCall ethCall = web3j.ethCall(transaction, DefaultBlockParameterName.LATEST).sendAsync().get();
             List<Type> results = FunctionReturnDecoder.decode(ethCall.getValue(), function.getOutputParameters());
-            decimal = Integer.parseInt(results.get(0).getValue().toString());
+            if (results.size()>0){
+                decimal = Integer.parseInt(results.get(0).getValue().toString());
+            }
 
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
