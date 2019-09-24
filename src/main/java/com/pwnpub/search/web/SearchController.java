@@ -405,7 +405,7 @@ public class SearchController {
                 .setTypes("data")
 
                 .setSearchType(SearchType.QUERY_THEN_FETCH) //小数量查询
-                .setQuery(boolQueryBuilder);
+                .setQuery(boolQueryBuilder).setSize(1000);
 
         SearchResponse searchResponse = searchRequestBuilder.get();
 
