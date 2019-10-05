@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.EthGetBalance;
+import org.web3j.protocol.core.methods.response.EthGetCode;
 import org.web3j.protocol.core.methods.response.Web3ClientVersion;
 import org.web3j.utils.Convert;
 
@@ -634,6 +635,8 @@ public class SearchController {
             } else {
                 map.put("balance", 0);
             }
+           EthGetCode ethGetCode =  web3j.ethGetCode(address, DefaultBlockParameterName.LATEST).send();
+           map.put("code",ethGetCode.getCode());
         } catch (IOException e) {
             e.printStackTrace();
             logger.error("获取主币余额失败...");
