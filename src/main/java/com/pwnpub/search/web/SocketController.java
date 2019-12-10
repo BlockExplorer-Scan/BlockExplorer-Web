@@ -1,5 +1,6 @@
 package com.pwnpub.search.web;
 
+import com.alibaba.fastjson.JSONObject;
 import com.pwnpub.search.utils.ResponseResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -27,5 +28,15 @@ public class SocketController {
         return ResponseResult.build(200, "Socket获取主币名称成功", tokenName);
     }
 
+
+    @GetMapping("/getConfig")
+    public ResponseResult getConfig(){
+
+        String hideErc20Address = configurableApplicationContext.getEnvironment().getProperty("hideErc20Address");
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("hideErc20Address",hideErc20Address);
+
+        return ResponseResult.build(200, "getConfig", jsonObject);
+    }
 
 }
