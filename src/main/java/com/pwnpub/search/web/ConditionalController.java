@@ -77,17 +77,11 @@ public class ConditionalController {
                 boolQueryBuilder.must(qb1);
             }
 
-            //需要处理
+            //
             if (transferStart != null && transferEnd != null) {
 
-                //RangeQueryBuilder qb2 = rangeQuery("value").from(transferStart).to(transferEnd);
                 RangeQueryBuilder qb2 = rangeQuery("value")
                         .gte(transferStart).lte(transferEnd);
-
-                //TermRangeQuery termRangeQuery =new TermRangeQuery("value",new BytesRef(transferStart), new BytesRef(transferEnd), true, true);
-
-
-                //TermRangeQuery termRangeQuery = new TermRangeQuery()
 
                 boolQueryBuilder.must(qb2);
             }

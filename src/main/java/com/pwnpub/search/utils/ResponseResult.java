@@ -7,8 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 
 /**
- * @author: soobeen
- * email：soobeencn@163.com
+ *
  * date: 2018/5/15
  * desc: 返回体封装
  */

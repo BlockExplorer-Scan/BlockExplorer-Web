@@ -23,7 +23,6 @@ import java.util.concurrent.ExecutionException;
 
 /**
  * @program BlockExplorer-Web-h5
- * @author: joon.h
  * @create: 2019/01/21 13:31
  */
 

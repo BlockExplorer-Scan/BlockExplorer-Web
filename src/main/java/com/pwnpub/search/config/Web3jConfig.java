@@ -8,7 +8,6 @@ import org.web3j.protocol.http.HttpService;
 
 /**
  * @program storage-job
- * @author: joon.h
  * @create: 2019/02/21 15:47
  */
 @Configuration

@@ -3,7 +3,7 @@ package com.pwnpub.search.pojo;
 import java.util.List;
 
 /**
- * @author soobeenwong
+ *
  * @date 2018-12-29 11:29 AM
  * @desc ERC20 transfer
  */

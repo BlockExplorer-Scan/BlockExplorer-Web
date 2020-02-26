@@ -11,7 +11,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 /**
- * @author soobeenwong
+ *
  * @date 2018-11-02 5:10 PM
  * @desc ES配置
  */

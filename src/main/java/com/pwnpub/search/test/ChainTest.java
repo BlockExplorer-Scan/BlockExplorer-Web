@@ -27,7 +27,7 @@ import static com.pwnpub.search.entity.EsTableEnum.ERC20;
 import static com.pwnpub.search.entity.EsTableEnum.ERC20TOKEN;
 
 /**
- * @author soobeenwong
+ *
  * @date 2019-07-15 19:01
  * @desc 测试公链数据
  */

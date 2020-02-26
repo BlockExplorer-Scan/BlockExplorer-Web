@@ -10,9 +10,9 @@ import org.springframework.stereotype.Component;
 import java.util.Properties;
 
 /**
- * @author soobeenwong
+ *
  * @date 2019-03-26 10:45 AM
- * @desc
+ * @desc 邮件配置
  */
 @Component
 public class EmailConfig {

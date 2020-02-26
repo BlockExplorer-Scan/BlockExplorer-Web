@@ -2,7 +2,6 @@ package com.pwnpub.search.pojo;
 
 /**
  * @program BlockExplorer-Web
- * @author: joon.h
  * @create: 2019/06/24 14:58
  */
 public class TokenEntity {

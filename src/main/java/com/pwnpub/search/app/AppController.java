@@ -22,7 +22,7 @@ import static com.pwnpub.search.entity.EsTableEnum.ERC20;
 import static com.pwnpub.search.entity.EsTableEnum.MAINCOIN;
 
 /**
- * @author soobeenwong
+ *
  * @date 2019-01-05 2:16 PM
  * @desc 提供手机h5版展示
  */

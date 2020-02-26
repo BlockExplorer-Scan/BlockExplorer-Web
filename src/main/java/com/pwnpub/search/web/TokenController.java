@@ -32,7 +32,7 @@ import java.util.Map;
 import static com.pwnpub.search.entity.EsTableEnum.ERC20;
 
 /**
- * @author soobeenwong
+ *
  * @date 2019-06-24 11:08
  * @desc 钱包管理类
  */

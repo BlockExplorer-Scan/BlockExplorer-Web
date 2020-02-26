@@ -34,7 +34,7 @@ import java.util.*;
 import static com.pwnpub.search.entity.EsTableEnum.*;
 
 /**
- * @author soobeenwong
+ *
  * @date 2019-01-26 7:27 PM
  * @desc ERC20 Top Tokens
  */

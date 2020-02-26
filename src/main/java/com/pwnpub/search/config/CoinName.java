@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * @author soobeenwong
+ *
  * @date 2019-01-14 11:32 AM
  * @desc coinname based on xxx standard protocols
  *

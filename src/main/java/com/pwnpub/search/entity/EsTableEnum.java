@@ -1,7 +1,7 @@
 package com.pwnpub.search.entity;
 
 /**
- * @author soobeenwong
+ *
  * @date 2019-04-18 3:02 PM
  * @desc Es
  */

@@ -1,7 +1,7 @@
 package com.pwnpub.search.entity;
 
 /**
- * @author soobeenwong
+ *
  * @date 2019-03-26 10:44 AM
  * @desc 邮件实体类
  */

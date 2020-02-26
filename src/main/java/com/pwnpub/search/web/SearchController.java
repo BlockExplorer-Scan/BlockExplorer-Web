@@ -45,7 +45,7 @@ import java.util.*;
 import static com.pwnpub.search.entity.EsTableEnum.*;
 
 /**
- * @author soobeenwong
+ *
  * @date 2018-11-02 8:39 PM
  * @desc 搜索接口
  */

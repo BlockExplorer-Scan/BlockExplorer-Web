@@ -1,7 +1,7 @@
 package com.pwnpub.search.pojo;
 
 /**
- * @author soobeenwong
+ *
  * @date 2018-12-18 3:32 PM
  * @desc 重新定义交易实体类
  */

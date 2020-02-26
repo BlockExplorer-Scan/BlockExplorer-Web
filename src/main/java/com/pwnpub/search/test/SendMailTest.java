@@ -13,7 +13,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 /**
- * @author soobeenwong
+ *
  * @date 2019-03-26 10:46 AM
  * @desc 测试邮件发送
  */
